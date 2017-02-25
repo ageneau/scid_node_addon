@@ -1,0 +1,32 @@
+{
+  "name": "scid",
+  "version": "0.0.1",
+  "description": "Node bindings to SCID (Shane's Chess Information Database)",
+  "main": "index.js",
+  "keywords": [
+    "addon",
+    "scid",
+    "chess"
+  ],
+  "scripts": {
+    "test": "mocha",
+    "preinstall": "./scripts/preinstall.sh",
+    "install": "node-gyp rebuild"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:ageneau/scid.git"
+  },
+  "author": "ageneau",
+  "license": "GPL-2.0",
+  "engines": {
+    "node": ">=0.8"
+  },
+  "gypfile": true,
+  "dependencies": {
+    "bindings": "^1.2.1"
+  },
+  "devDependencies": {
+    "mocha": "^3.2.0"
+  }
+}
