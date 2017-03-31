@@ -42,3 +42,38 @@ describe('game', function() {
     assert.equal(2709, scid.game("info", "belo"));
   });
 });
+
+describe('search', function() {
+  it('should return the number of games with a position where a black knight is on b4', function() {
+    var result = scid.search("material",
+                             "-wq","0 2",
+                             "-bq","0 2",
+                             "-wr","0 2",
+                             "-br","0 2",
+                             "-wb","0 2",
+                             "-bb","0 2",
+                             "-wn","0 2",
+                             "-bn","0 2",
+                             "-wm","0 4",
+                             "-bm","0 4",
+                             "-wp","0 8",
+                             "-bp","0 8",
+                             "-flip","0",
+                             "-filter","2",
+                             "-range","1 999",
+                             "-length","1",
+                             "-bishops","Either",
+                             "-diff","-40 +40",
+                             "-patt","Yes bn b 4",
+                             "-patt","Yes ? ? ?",
+                             "-patt","Yes ? ? ?",
+                             "-patt","Yes ? ? ?",
+                             "-patt","Yes ? ? ?",
+                             "-patt","Yes ? ? ?",
+                             "-patt","Yes ? ? ?",
+                             "-patt","Yes ? ? ?",
+                             "-patt","Yes ? ? ?",
+                             "-patt","Yes ? ? ?");
+    assert.notEqual(-1, result.startsWith("4 / 4"));
+  });
+});

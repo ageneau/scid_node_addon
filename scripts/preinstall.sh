@@ -6,7 +6,7 @@ cd $DEPS
 
 echo "Downloading $SCID from $SCID_URL"
 
-curl -C - --fail --output $SCID_FILE $SCID_URL || wget --continue $SCID_URL -O $SCID_FILE
+curl -L --output $SCID_FILE $SCID_URL || wget --continue $SCID_URL -O $SCID_FILE
 
 if [ $? != 0 ] ; then
     echo "Unable to download scid"
