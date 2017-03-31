@@ -20,4 +20,5 @@ unzip $SCID_FILE
 mv $SCID $SCID_DEPS
 
 cd $SCID_DEPS
-patch -p1 < ../../patches/0001-NodeJS-patch.patch
+for i in ../../patches/*.patch; do patch -p1 < $i; done
+

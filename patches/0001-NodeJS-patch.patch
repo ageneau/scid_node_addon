@@ -1,4 +1,4 @@
-From fd0ac7c775489a48e570f37d42d9604295c0dfb6 Mon Sep 17 00:00:00 2001
+From f294a4b3681f01ba58dcceda68bc896fe25be483 Mon Sep 17 00:00:00 2001
 From: Sylvain Ageneau <ageneau@gmail.com>
 Date: Sat, 25 Feb 2017 17:50:52 +0100
 Subject: [PATCH] NodeJS patch
@@ -6,11 +6,11 @@ Subject: [PATCH] NodeJS patch
 ---
  src/dbasepool.cpp |    1 -
  src/sc_base.cpp   |   16 +-
- src/tkscid.cpp    | 1268 +++++++++++++++++++++++++++++++----------------------
+ src/tkscid.cpp    | 1270 +++++++++++++++++++++++++++++++----------------------
  src/tkscid.h      |  208 ++++-----
  src/ui.h          |    8 +-
  src/ui_tcltk.h    |   19 +-
- 6 files changed, 874 insertions(+), 646 deletions(-)
+ 6 files changed, 877 insertions(+), 645 deletions(-)
 
 diff --git a/src/dbasepool.cpp b/src/dbasepool.cpp
 index ef07293..a1383ad 100644
@@ -87,7 +87,7 @@ index 5d54613..12848f3 100644
  		tourney.clear();
  		date_DecodeToString(it->getStartDate(), buf_date);
 diff --git a/src/tkscid.cpp b/src/tkscid.cpp
-index da55409..fa8f470 100644
+index da55409..7c94542 100644
 --- a/src/tkscid.cpp
 +++ b/src/tkscid.cpp
 @@ -52,6 +52,24 @@
@@ -115,7 +115,7 @@ index da55409..fa8f470 100644
  
  //TODO: delete
  extern scidBaseT* db;
-@@ -77,6 +95,8 @@ void scid_Exit(void*) {
+@@ -77,8 +95,14 @@ void scid_Exit(void*) {
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  // Main procedure
  //
@@ -123,17 +123,14 @@ index da55409..fa8f470 100644
 +#ifndef NODEJS
  int
  main(int argc, char * argv[])
- {
-@@ -87,7 +107,7 @@ main(int argc, char * argv[])
- 
- 	return UI_Main(argc, argv, scid_Exit);
- }
--
++#else
++int
++scid_main(int argc, char * argv[])
 +#endif
+ {
+ 	srand(time(NULL));
  
- 
- 
-@@ -109,6 +129,7 @@ static uint htmlDiagStyle = 0;
+@@ -109,6 +133,7 @@ static uint htmlDiagStyle = 0;
  #define PROBE_OPTIMAL 4
  
  
@@ -141,7 +138,7 @@ index da55409..fa8f470 100644
  
  //////////////////////////////////////////////////////////////////////
  //
-@@ -120,10 +141,10 @@ static uint htmlDiagStyle = 0;
+@@ -120,10 +145,10 @@ static uint htmlDiagStyle = 0;
  //    Inline function to set the Tcl interpreter result to a
  //    constant string.
  inline int
@@ -154,7 +151,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -131,12 +152,12 @@ setResult (Tcl_Interp * ti, const char * str)
+@@ -131,12 +156,12 @@ setResult (Tcl_Interp * ti, const char * str)
  //    Inline function to set the Tcl interpreter result to a
  //    signed integer value.
  inline int
@@ -169,7 +166,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -144,12 +165,12 @@ setIntResult (Tcl_Interp * ti, int i)
+@@ -144,12 +169,12 @@ setIntResult (Tcl_Interp * ti, int i)
  //    Inline function to set the Tcl interpreter result to an
  //    unsigned integer value.
  inline int
@@ -184,7 +181,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -157,12 +178,12 @@ setUintResult (Tcl_Interp * ti, uint i)
+@@ -157,12 +182,12 @@ setUintResult (Tcl_Interp * ti, uint i)
  //    Inline function to append the specified unsigned value to the
  //    Tcl interpreter result.
  inline int
@@ -199,7 +196,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -170,25 +191,33 @@ appendUintResult (Tcl_Interp * ti, uint i)
+@@ -170,25 +195,33 @@ appendUintResult (Tcl_Interp * ti, uint i)
  //    Inline function to append the specified unsigned value to the
  //    Tcl interpreter list result.
  inline uint
@@ -211,15 +208,15 @@ index da55409..fa8f470 100644
      Tcl_AppendElement (ti, temp);
 -    return TCL_OK;
 +    return SCID_OK;
-+}
-+
+ }
+ 
 +inline uint
 +appendStringElement (UI_handle_t ti, const char* string)
 +{
 +    Tcl_AppendElement (ti, string);
 +    return SCID_OK;
- }
- 
++}
++
 +
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  // setUintWidthResult():
@@ -237,7 +234,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -196,21 +225,22 @@ setUintWidthResult (Tcl_Interp * ti, uint i, uint width)
+@@ -196,21 +229,22 @@ setUintWidthResult (Tcl_Interp * ti, uint i, uint width)
  //    Inline function to append the specified character value to the
  //    Tcl interpreter result.
  inline int
@@ -263,7 +260,7 @@ index da55409..fa8f470 100644
  {
      const char * str = Tcl_GetVar2 (ti, "tr", (char *) name, TCL_GLOBAL_ONLY);
      if (str == NULL) { str = defaultText; }
-@@ -218,34 +248,48 @@ translate (Tcl_Interp * ti, const char * name, const char * defaultText)
+@@ -218,34 +252,48 @@ translate (Tcl_Interp * ti, const char * name, const char * defaultText)
  }
  
  inline const char *
@@ -319,7 +316,7 @@ index da55409..fa8f470 100644
                  const char ** minorCmds)
  {
      ASSERT (majorCmd != NULL);
-@@ -255,9 +299,161 @@ InvalidCommand (Tcl_Interp * ti, const char * majorCmd,
+@@ -255,9 +303,161 @@ InvalidCommand (Tcl_Interp * ti, const char * majorCmd,
          Tcl_AppendResult (ti, "   ", *minorCmds, "\n", NULL);
          minorCmds++;
      }
@@ -382,8 +379,8 @@ index da55409..fa8f470 100644
 +{
 +    printf("STUB: appendUintElement:%ui\n", i);
 +    return SCID_OK;
-+}
-+
+ }
+ 
 +inline uint
 +appendStringElement (UI_handle_t ti, const char* string)
 +{
@@ -440,8 +437,8 @@ index da55409..fa8f470 100644
 +translate (UI_handle_t ti, const char * name)
 +{
 +    return translate (ti, name, name);
- }
- 
++}
++
 +inline int errorResult (UI_handle_t ti, errorT err, const char* errorMsg = 0) {
 +    Isolate* isolate = ti->callback_info->GetIsolate();
 +
@@ -482,7 +479,7 @@ index da55409..fa8f470 100644
  
  /************ End of Tcl result routines ***********/
  
-@@ -266,13 +462,13 @@ InvalidCommand (Tcl_Interp * ti, const char * majorCmd,
+@@ -266,13 +466,13 @@ InvalidCommand (Tcl_Interp * ti, const char * majorCmd,
  // Standard error messages:
  //
  const char *
@@ -498,7 +495,7 @@ index da55409..fa8f470 100644
  {
      return translate (ti, "ErrSearchInterrupted",
                        "[Interrupted search; results are incomplete]");
-@@ -290,7 +486,7 @@ errMsgSearchInterrupted (Tcl_Interp * ti)
+@@ -290,7 +490,7 @@ errMsgSearchInterrupted (Tcl_Interp * ti)
  //    needing the standard slower [string match] or [string range]
  //    routines.
  int
@@ -507,7 +504,7 @@ index da55409..fa8f470 100644
  {
      if (argc != 3) {
          return errorResult (ti, "Usage: strIsPrefix <shortStr> <longStr>");
-@@ -304,7 +500,7 @@ str_is_prefix (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -304,7 +504,7 @@ str_is_prefix (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    Tcl command that returns the length of the common text at the start
  //    of two strings.
  int
@@ -516,7 +513,7 @@ index da55409..fa8f470 100644
  {
      if (argc != 3) {
          return errorResult (ti, "Usage: strPrefixLen <str> <str>");
-@@ -317,7 +513,7 @@ str_prefix_len (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -317,7 +517,7 @@ str_prefix_len (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  // sc_base_inUse
  //  Returns 1 if the database slot is in use; 0 otherwise.
  int
@@ -525,7 +522,7 @@ index da55409..fa8f470 100644
  {
      const scidBaseT* basePtr = db;
      if (argc > 2) {
-@@ -365,7 +561,7 @@ exportGame (Game * g, FILE * exportFile, gameFormatT format, uint pgnStyle)
+@@ -365,7 +565,7 @@ exportGame (Game * g, FILE * exportFile, gameFormatT format, uint pgnStyle)
  //    Exports the current game or all filter games in the database
  //    to a PGN, HTML or LaTeX file.
  int
@@ -534,7 +531,7 @@ index da55409..fa8f470 100644
  {
      FILE * exportFile = NULL;
      bool exportFilter = false;
-@@ -534,7 +730,7 @@ sc_base_export (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -534,7 +734,7 @@ sc_base_export (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      }
      fputs (endText, exportFile);
      fclose (exportFile);
@@ -543,7 +540,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -543,7 +739,7 @@ sc_base_export (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -543,7 +743,7 @@ sc_base_export (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    returns a list of 64 integers indicating how frequently
  //    the specified piece moves to each square.
  int
@@ -552,7 +549,7 @@ index da55409..fa8f470 100644
  {
      const char * usage =
          "Usage: sc_base piecetrack [-g|-t] <minMoves> <maxMoves> <startSquare ...>";
-@@ -595,9 +791,10 @@ sc_base_piecetrack (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -595,9 +795,10 @@ sc_base_piecetrack (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
      // If current base is unused, filter is empty, or no track
      // squares specified, then just return a zero-filled list:
  
@@ -565,7 +562,7 @@ index da55409..fa8f470 100644
      }
  
      // Examine every filter game and track the selected pieces:
-@@ -720,10 +917,11 @@ sc_base_piecetrack (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -720,10 +921,11 @@ sc_base_piecetrack (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
      // the value for each square is the number of plies when a
      // tracked piece was on it, so halve it to convert to moves:
  
@@ -579,7 +576,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -1077,7 +1275,7 @@ sc_base_duplicates (scidBaseT* dbase, UI_handle_t ti, int argc, const char ** ar
+@@ -1077,7 +1279,7 @@ sc_base_duplicates (scidBaseT* dbase, UI_handle_t ti, int argc, const char ** ar
  //      strip <tag>: Remove all occurrences of the
  //                   specified tag from the database.
  int
@@ -588,7 +585,7 @@ index da55409..fa8f470 100644
  {
      const char * usage = "Usage: sc_base tag [filter <tagname> | list | strip <tagname>]";
      const char * options[] = {
-@@ -1178,28 +1376,29 @@ sc_base_tag (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -1178,28 +1380,29 @@ sc_base_tag (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      // If necessary, update index and name files:
      if (cmd == TAG_STRIP) {
          if (nEditedGames > 0) db->clearCaches();
@@ -623,7 +620,7 @@ index da55409..fa8f470 100644
  
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -1207,7 +1406,7 @@ int sc_clipbase_paste (scidBaseT* clipbase, Tcl_Interp * ti, int argc, const cha
+@@ -1207,7 +1410,7 @@ int sc_clipbase_paste (scidBaseT* clipbase, Tcl_Interp * ti, int argc, const cha
  //    Game clipbase functions.
  //    Copies a game to, or pastes from, the clipbase database.
  int
@@ -632,7 +629,7 @@ index da55409..fa8f470 100644
  {
      scidBaseT* clipbase = DBasePool::getBase(DBasePool::getClipBase());
  
-@@ -1226,7 +1425,7 @@ sc_clipbase (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -1226,7 +1429,7 @@ sc_clipbase (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          clipbase->Close();
          clipbase->Open(FMODE_Memory, "<clipbase>");
          clipbase->idx->SetType (2);
@@ -641,7 +638,7 @@ index da55409..fa8f470 100644
  
      case CLIP_PASTE:
          return sc_clipbase_paste (clipbase, ti, argc, argv);
-@@ -1235,17 +1434,17 @@ sc_clipbase (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -1235,17 +1438,17 @@ sc_clipbase (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          return InvalidCommand (ti, "sc_clipbase", options);
      }
  
@@ -662,7 +659,7 @@ index da55409..fa8f470 100644
  
      uint location = clipbase->game->GetPgnOffset ();
      db->bbuf->Empty();
-@@ -1267,7 +1466,7 @@ sc_clipbase_paste (scidBaseT* clipbase, Tcl_Interp * ti, int argc, const char **
+@@ -1267,7 +1470,7 @@ sc_clipbase_paste (scidBaseT* clipbase, Tcl_Interp * ti, int argc, const char **
      // Move to the current position in the clipbase game:
      db->game->MoveToLocationInPGN (location);
  
@@ -671,7 +668,7 @@ index da55409..fa8f470 100644
  }
  
  
-@@ -1285,10 +1484,10 @@ struct ecoTranslateT {
+@@ -1285,10 +1488,10 @@ struct ecoTranslateT {
  };
  
  static ecoTranslateT * ecoTranslations = NULL;
@@ -684,7 +681,7 @@ index da55409..fa8f470 100644
  {
      int index = -1;
      static const char * options [] = {
-@@ -1329,7 +1528,7 @@ sc_eco (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -1329,7 +1532,7 @@ sc_eco (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          return InvalidCommand (ti, "sc_eco", options);
      }
  
@@ -693,7 +690,7 @@ index da55409..fa8f470 100644
  }
  
  
-@@ -1348,7 +1547,7 @@ sc_eco (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -1348,7 +1551,7 @@ sc_eco (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    If the database is read-only, games can still be classified but
  //    the results will not be stored to the database file.
  int
@@ -702,7 +699,7 @@ index da55409..fa8f470 100644
  {
      if (argc != 4) {
          return errorResult (ti, "Usage: sc_eco base <bool:all_games> <bool:extensions>");
-@@ -1469,7 +1668,7 @@ sc_eco_base (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -1469,7 +1672,7 @@ sc_eco_base (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    parameter <ply> is passed, it returns the ply depth of the
  //    deepest match instead of the ECO code.
  int
@@ -711,7 +708,7 @@ index da55409..fa8f470 100644
  {
      int found = 0;
      uint ply = 0;
-@@ -1481,7 +1680,7 @@ sc_eco_game (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -1481,7 +1684,7 @@ sc_eco_game (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
              return errorResult (ti, "Usage: sc_game eco [ply]");
          }
      }
@@ -720,7 +717,7 @@ index da55409..fa8f470 100644
  
      db->game->SaveState();
      db->game->MoveToPly (0);
-@@ -1504,11 +1703,11 @@ sc_eco_game (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -1504,11 +1707,11 @@ sc_eco_game (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
              ecoT ecoCode = eco_FromString (ecoStr.Data());
              ecoStringT ecoStr;
              eco_ToExtendedString (ecoCode, ecoStr);
@@ -734,7 +731,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -1516,26 +1715,26 @@ sc_eco_game (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -1516,26 +1719,26 @@ sc_eco_game (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    Reads a book file for ECO classification.
  //    Returns the book size (number of positions).
  int
@@ -767,7 +764,7 @@ index da55409..fa8f470 100644
      }
      return setUintResult (ti, ecoBook->Size());
  }
-@@ -1545,14 +1744,14 @@ sc_eco_read (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -1545,14 +1748,14 @@ sc_eco_read (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    Returns a listing of positions for the specified ECO prefix,
  //    in plain text or color (Scid hypertext) format.
  int
@@ -784,7 +781,7 @@ index da55409..fa8f470 100644
      DString * dstr = new DString;
      DString * temp = new DString;
      bool inMoveList = false;
-@@ -1591,17 +1790,17 @@ sc_eco_summary (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -1591,17 +1794,17 @@ sc_eco_summary (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          }
          delete oldstr;
      }
@@ -805,7 +802,7 @@ index da55409..fa8f470 100644
  {
      if (argc != 5) {
          return errorResult (ti, "Usage: sc_eco translate <lang> <from> <to>");
-@@ -1617,7 +1816,7 @@ sc_eco_translate (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -1617,7 +1820,7 @@ sc_eco_translate (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      trans->from = strDuplicate (argv[3]);
      trans->to = strDuplicate (argv[4]);
      ecoTranslations = trans;
@@ -814,7 +811,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -1625,12 +1824,12 @@ sc_eco_translate (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -1625,12 +1828,12 @@ sc_eco_translate (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    Translates an ECO opening name into the current language.
  //
  void
@@ -829,7 +826,7 @@ index da55409..fa8f470 100644
      if (language == NULL) { return; }
      char lang = language[0];
      while (trans != NULL) {
-@@ -1669,7 +1868,7 @@ translateECO (Tcl_Interp * ti, const char * strFrom, DString * dstrTo)
+@@ -1669,7 +1872,7 @@ translateECO (Tcl_Interp * ti, const char * strFrom, DString * dstrTo)
  //    remove:    removes game number <x> from the filter.
  //    stats:     prints filter statistics.
  int
@@ -838,7 +835,7 @@ index da55409..fa8f470 100644
  {
      int index = -1;
      static const char * options [] = {
-@@ -1796,7 +1995,7 @@ sc_filter (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -1796,7 +1999,7 @@ sc_filter (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      case FILTER_SET:
          if (argc == 5) {
              filter.fill(strGetUnsigned(argv[4]));
@@ -847,7 +844,7 @@ index da55409..fa8f470 100644
          } else if (argc > 5) {
              uint gNum = strGetUnsigned (argv[5]);
              if (gNum > 0 && gNum <= dbase->numGames()) {
-@@ -1823,7 +2022,7 @@ sc_filter (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -1823,7 +2026,7 @@ sc_filter (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
                      delete [] idxList;
                  }
                  filter.set(gNum -1, val);
@@ -856,7 +853,7 @@ index da55409..fa8f470 100644
              }
          }
          return errorResult (ti, "Usage: sc_filter set baseId filterName value [gnumber [count sortCrit] ]");
-@@ -1833,7 +2032,7 @@ sc_filter (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -1833,7 +2036,7 @@ sc_filter (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  
      case FILTER_RELEASE:
          dbase->deleteFilter(argv[3]);
@@ -865,7 +862,7 @@ index da55409..fa8f470 100644
  
      case FILTER_SEARCH:
          if (argc > 5) {
-@@ -1847,8 +2046,8 @@ sc_filter (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -1847,8 +2050,8 @@ sc_filter (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  
      case FILTER_TREESTATS: {
              std::vector<scidBaseT::TreeStat> stats = dbase->getTreeStat(filter);
@@ -876,7 +873,7 @@ index da55409..fa8f470 100644
              for (uint i=0; i < stats.size(); i++) {
                  ginfo.clear();
                  ginfo.push_back(stats[i].SAN);
-@@ -1906,7 +2105,7 @@ sc_filter (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -1906,7 +2109,7 @@ sc_filter (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
              if (argc > 8) fprintf(exportFile, "%s", argv[8]);
              fclose (exportFile);
              progress.report(1,1);
@@ -885,7 +882,7 @@ index da55409..fa8f470 100644
          }
          return errorResult (ti, "Usage: sc_filter export baseId filterName sortCrit filename <PGN|LaTeX> [header] [footer]");
  
-@@ -1932,7 +2131,7 @@ sc_filter (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -1932,7 +2135,7 @@ sc_filter (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    the other does not, the other rating will be assumed to be
  //    same as the nonzero rating, up to a maximum of 2200.
  int
@@ -894,7 +891,7 @@ index da55409..fa8f470 100644
  {
      const char * usage =
          "Usage: sc_filter freq baseId filterName date|elo|move <startDate|minElo|lowerhalfMove> [<endDate|maxElo|higherhalfMove>] [GuessElo]";
-@@ -2034,9 +2233,11 @@ sc_filter_freq (scidBaseT* dbase, const HFilter& filter, Tcl_Interp * ti, int ar
+@@ -2034,9 +2237,11 @@ sc_filter_freq (scidBaseT* dbase, const HFilter& filter, Tcl_Interp * ti, int ar
              }
          }
      }
@@ -909,7 +906,7 @@ index da55409..fa8f470 100644
  }
  
  //TODO:
-@@ -2048,7 +2249,7 @@ sc_filter_freq (scidBaseT* dbase, const HFilter& filter, Tcl_Interp * ti, int ar
+@@ -2048,7 +2253,7 @@ sc_filter_freq (scidBaseT* dbase, const HFilter& filter, Tcl_Interp * ti, int ar
  //    Returns the game number of the first game in the filter,
  //    or 0 if the filter is empty.
  int
@@ -918,7 +915,7 @@ index da55409..fa8f470 100644
  {
  	for (uint gnum=0; gnum < db->numGames(); gnum++) {
  		if (db->dbFilter->Get(gnum) == 0) continue;
-@@ -2062,7 +2263,7 @@ sc_filter_first (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -2062,7 +2267,7 @@ sc_filter_first (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    Returns the game number of the last game in the filter,
  //    or 0 if the filter is empty.
  int
@@ -927,7 +924,7 @@ index da55409..fa8f470 100644
  {
  	long gnum = db->numGames();
  	for (gnum--; gnum >= 0; gnum--) {
-@@ -2076,7 +2277,7 @@ sc_filter_last (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -2076,7 +2281,7 @@ sc_filter_last (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  // sc_filter_next:
  //    Returns number of next game in the filter.
  int
@@ -936,7 +933,7 @@ index da55409..fa8f470 100644
  {
      if (db->inUse) {
          uint nextNumber = db->gameNumber + 1;
-@@ -2094,7 +2295,7 @@ sc_filter_next (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -2094,7 +2299,7 @@ sc_filter_next (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  // sc_filter_prev:
  //    Returns number of previous game in the filter.
  int
@@ -945,7 +942,7 @@ index da55409..fa8f470 100644
  {
      if (db->inUse) {
          int prevNumber = db->gameNumber - 1;
-@@ -2114,7 +2315,7 @@ sc_filter_prev (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -2114,7 +2319,7 @@ sc_filter_prev (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  // sc_filter_stats:
  //    Returns statistics about the filter.
  int
@@ -954,7 +951,7 @@ index da55409..fa8f470 100644
  {
      enum {STATS_ALL, STATS_ELO, STATS_YEAR};
  
-@@ -2192,15 +2393,15 @@ sc_filter_stats (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -2192,15 +2397,15 @@ sc_filter_stats (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
               results[RESULT_Draw],
               results[RESULT_Black],
               percentScore / 10, decimalPointChar, percentScore % 10);
@@ -973,7 +970,7 @@ index da55409..fa8f470 100644
  {
      static const char * options [] = {
          "altered",    "setaltered", "crosstable", "eco",
-@@ -2385,7 +2586,7 @@ sc_game (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -2385,7 +2590,7 @@ sc_game (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          return InvalidCommand (ti, "sc_game", options);
      }
  
@@ -982,7 +979,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -2412,7 +2613,7 @@ isCrosstableGame (const IndexEntry* ie, idNumberT siteID, idNumberT eventID,
+@@ -2412,7 +2617,7 @@ isCrosstableGame (const IndexEntry* ie, idNumberT siteID, idNumberT eventID,
  // sc_game_crosstable:
  //    Returns the crosstable for the current game.
  int
@@ -991,7 +988,7 @@ index da55409..fa8f470 100644
  {
  #ifndef WINCE
      static const char * options [] = {
-@@ -2522,7 +2723,7 @@ sc_game_crosstable (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -2522,7 +2727,7 @@ sc_game_crosstable (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
              default: return errorResult (ti, usageMsg);
          }
      }
@@ -1000,7 +997,7 @@ index da55409..fa8f470 100644
  
      const char * newlineStr = "";
      switch (option) {
-@@ -2555,10 +2756,10 @@ sc_game_crosstable (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -2555,10 +2760,10 @@ sc_game_crosstable (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
  
      idNumberT eventId = 0, siteId = 0;
      if (db->getNameBase()->FindExactName (NAME_EVENT, g->GetEventStr(), &eventId) != OK) {
@@ -1013,7 +1010,7 @@ index da55409..fa8f470 100644
      }
  
      dateT eventDate = g->GetEventDate();
-@@ -2624,7 +2825,7 @@ sc_game_crosstable (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -2624,7 +2829,7 @@ sc_game_crosstable (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
          {
              if (! tableFullMessage) {
                  tableFullMessage = true;
@@ -1022,7 +1019,7 @@ index da55409..fa8f470 100644
              }
              continue;
          }
-@@ -2644,7 +2845,7 @@ sc_game_crosstable (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -2644,7 +2849,7 @@ sc_game_crosstable (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
      }
      if (option == OPT_FILTER) {
          delete ctable;
@@ -1031,7 +1028,7 @@ index da55409..fa8f470 100644
      }
      if (ctable->NumPlayers() < 2) {
          delete ctable;
-@@ -2652,7 +2853,7 @@ sc_game_crosstable (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -2652,7 +2857,7 @@ sc_game_crosstable (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
      }
  
      if (option == OPT_LATEX) {
@@ -1040,7 +1037,7 @@ index da55409..fa8f470 100644
                            "\\usepackage{a4wide}\n\n",
                            "\\begin{document}\n\n",
                            "\\setlength{\\parindent}{0cm}\n",
-@@ -2667,48 +2868,48 @@ sc_game_crosstable (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -2667,48 +2872,48 @@ sc_game_crosstable (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
      if (mode == CROSSTABLE_AllPlayAll  &&
              ctable->NumPlayers() > apaLimit  &&
              !tableFullMessage) {
@@ -1100,7 +1097,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -2720,7 +2921,7 @@ sc_game_crosstable (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -2720,7 +2925,7 @@ sc_game_crosstable (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
  //    a database where the number may be inaccurate due to database
  //    sorting or compaction.
  int
@@ -1109,7 +1106,7 @@ index da55409..fa8f470 100644
  {
      if (argc != 9) {
          return errorResult (ti, "sc_game_find: Incorrect parameters");
-@@ -2789,7 +2990,7 @@ sc_game_find (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -2789,7 +2994,7 @@ sc_game_find (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    get the first few moves of the specified game as  a text line.
  //    E.g., "sc_game firstMoves 4" might return "1.e4 e5 2.Nf3 Nf6"
  int
@@ -1118,7 +1115,7 @@ index da55409..fa8f470 100644
  {
      if (argc != 3) {
          return errorResult (ti, "Usage: sc_game firstMoves <numMoves>");
-@@ -2809,7 +3010,7 @@ sc_game_firstMoves (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -2809,7 +3014,7 @@ sc_game_firstMoves (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
  }
  
  int
@@ -1127,7 +1124,7 @@ index da55409..fa8f470 100644
  {
      if (argc != 3) {
          return errorResult (ti, "Usage: sc_game import <pgn-text>");
-@@ -2828,13 +3029,13 @@ sc_game_import (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -2828,13 +3033,13 @@ sc_game_import (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      if (err == OK  &&  parser.ErrorCount() == 0) {
          return setResult (ti, "PGN text imported with no errors or warnings.");
      }
@@ -1144,7 +1141,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -2843,7 +3044,7 @@ sc_game_import (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -2843,7 +3048,7 @@ sc_game_import (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    the score, a descriptive score with optimal moves, or just a
  //    (random) optimal move.
  bool
@@ -1153,7 +1150,7 @@ index da55409..fa8f470 100644
  {
      int score = 0;
      bool showResult = false;
-@@ -3181,7 +3382,7 @@ probe_tablebase (Tcl_Interp * ti, int mode, DString * dstr)
+@@ -3181,7 +3386,7 @@ probe_tablebase (Tcl_Interp * ti, int mode, DString * dstr)
  //    Return the Game Info string for the active game.
  //    The returned text includes color codes.
  int
@@ -1162,7 +1159,7 @@ index da55409..fa8f470 100644
  {
      bool hideNextMove = false;
      bool showMaterialValue = false;
-@@ -3236,29 +3437,29 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3236,29 +3441,29 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
                  commentHeight = strGetBoolean(argv[arg]);
              }
          } else if (strIsPrefix (argv[arg], "white")) {
@@ -1204,7 +1201,7 @@ index da55409..fa8f470 100644
          } else if (strIsPrefix (argv[arg], "year")) {
              return setUintResult (ti, date_GetYear (db->game->GetDate()));
          } else if (strIsPrefix (argv[arg], "result")) {
-@@ -3267,34 +3468,34 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3267,34 +3472,34 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
              db->game->GetSAN (temp);
              strcpy(tempTrans, temp);
              transPieces(tempTrans);
@@ -1251,7 +1248,7 @@ index da55409..fa8f470 100644
          } else if (strIsPrefix (argv[arg], "duplicate")) {
              uint dupGameNum = db->getDuplicates(db->gameNumber);
              return setUintResult (ti, dupGameNum);
-@@ -3317,7 +3518,7 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3317,7 +3522,7 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
         //       );
      }
  
@@ -1260,7 +1257,7 @@ index da55409..fa8f470 100644
      eloT elo = db->game->GetWhiteElo();
      bool eloEstimated = false;
      if (elo == 0) {
-@@ -3326,7 +3527,7 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3326,7 +3531,7 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      }
      if (elo != 0) {
          sprintf (temp, " <red>%u%s</red>", elo, eloEstimated ? "*" : "");
@@ -1269,7 +1266,7 @@ index da55409..fa8f470 100644
      }
      sprintf (temp, "  --  <pi %s>%s</pi>",
               db->game->GetBlackStr(), db->game->GetBlackStr());
-@@ -3340,7 +3541,7 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3340,7 +3545,7 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
         //       tolower(db->game->FindExtraTag("BlackCountry")[2])
         //       );
      }
@@ -1278,7 +1275,7 @@ index da55409..fa8f470 100644
      elo = db->game->GetBlackElo();
      eloEstimated = false;
      if (elo == 0) {
-@@ -3349,7 +3550,7 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3349,7 +3554,7 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      }
      if (elo != 0) {
          sprintf (temp, " <red>%u%s</red>", elo, eloEstimated ? "*" : "");
@@ -1287,7 +1284,7 @@ index da55409..fa8f470 100644
      }
  
      if (hideNextMove) {
-@@ -3360,7 +3561,7 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3360,7 +3565,7 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
                   RESULT_LONGSTR[db->game->GetResult()],
                   (db->game->GetNumHalfMoves() + 1) / 2);
      }
@@ -1296,7 +1293,7 @@ index da55409..fa8f470 100644
  
      if (db->game->GetEco() != 0) {
          ecoStringT fullEcoStr;
-@@ -3368,20 +3569,20 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3368,20 +3573,20 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          ecoStringT basicEcoStr;
          strCopy (basicEcoStr, fullEcoStr);
          if (strLength(basicEcoStr) >= 4) { basicEcoStr[3] = 0; }
@@ -1320,7 +1317,7 @@ index da55409..fa8f470 100644
                                translate (ti, "deleted"), ")</gray>", NULL);
          }
          char userFlags[16];
-@@ -3391,7 +3592,7 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3391,7 +3596,7 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
              // Skip over "D" for Deleted, as it is indicated above:
              if (*flagStr == 'D') { flagStr++; }
              if (*flagStr != 0) {
@@ -1329,7 +1326,7 @@ index da55409..fa8f470 100644
                                    translate (ti, "flags", "flags"),
                                    ": ", flagStr, NULL);
                  int flagCount = 0;
-@@ -3412,23 +3613,23 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3412,23 +3617,23 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
                          case 'U': flagName = "UserFlag"; break;
                      }
                      if (flagName != NULL) {
@@ -1357,7 +1354,7 @@ index da55409..fa8f470 100644
                                translate (ti, "twin"), ")</run></blue>", NULL);
          }
      }
-@@ -3436,7 +3637,7 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3436,7 +3641,7 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
               db->game->GetSiteStr(),
               db->game->GetEventStr(),
               db->game->GetRoundStr());
@@ -1366,7 +1363,7 @@ index da55409..fa8f470 100644
  
      char san [20];
      byte * nags;
-@@ -3461,20 +3662,20 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3461,20 +3666,20 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
                   prevMoveCount, toMove==WHITE ? ".." : "", tempTrans);//san);
          printNags = true;
      }
@@ -1393,7 +1390,7 @@ index da55409..fa8f470 100644
      }
  
      // Now print next move:
-@@ -3499,24 +3700,24 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3499,24 +3704,24 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
                   moveCount, toMove==WHITE ? "" : "..", tempTrans);//san);
          printNags = true;
      }
@@ -1425,7 +1422,7 @@ index da55409..fa8f470 100644
                            "(<lt>-Var)", "</run></green>", NULL);
      }
  
-@@ -3524,22 +3725,22 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3524,22 +3729,22 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          uint mWhite = db->game->GetCurrentPos()->MaterialValue (WHITE);
          uint mBlack = db->game->GetCurrentPos()->MaterialValue (BLACK);
          sprintf (temp, "    <gray>(%u-%u", mWhite, mBlack);
@@ -1453,7 +1450,7 @@ index da55409..fa8f470 100644
          for (uint vnum = 0; vnum < varCount && vnum < 5; vnum++) {
              char s[20];
              db->game->MoveIntoVariation (vnum);
-@@ -3548,20 +3749,20 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3548,20 +3753,20 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
              transPieces(tempTrans);
              sprintf (temp, "   <run sc_var enter %u; updateBoard -animate>v%u",
                       vnum, vnum+1);
@@ -1478,7 +1475,7 @@ index da55409..fa8f470 100644
              db->game->MoveExitVariation ();
          }
      }
-@@ -3569,7 +3770,7 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3569,7 +3774,7 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      // Check if this move has a comment:
  
      if (db->game->GetMoveComment() != NULL) {
@@ -1487,7 +1484,7 @@ index da55409..fa8f470 100644
                            " <green><run makeCommentWin>", NULL);
          char * str = strDuplicate(db->game->GetMoveComment());
          strTrimMarkCodes (str);
-@@ -3584,11 +3785,11 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3584,11 +3789,11 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
              if (ch == '\n') {
                  lines++;
                  if (lines >= commentHeight) { break; }
@@ -1502,7 +1499,7 @@ index da55409..fa8f470 100644
              } else {
                  appendCharResult (ti, ch);
              }
-@@ -3602,10 +3803,10 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3602,10 +3807,10 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
                  ch = *s;
              }
              if (ch != 0) {
@@ -1515,7 +1512,7 @@ index da55409..fa8f470 100644
  #ifdef WINCE
          my_Tcl_Free((char*) str);
  #else
-@@ -3618,7 +3819,7 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3618,7 +3823,7 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      if (!hideNextMove) {
          DString * tbStr = new DString;
          if (probe_tablebase (ti, showTB, tbStr)) {
@@ -1524,7 +1521,7 @@ index da55409..fa8f470 100644
                                tbStr->Data(), "</run></blue>", NULL);
          }
          delete tbStr;
-@@ -3636,7 +3837,7 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3636,7 +3841,7 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
              if (len >= 4) { estr[3] = 0; }
              DString * tempDStr = new DString;
              translateECO (ti, ecoComment.Data(), tempDStr);
@@ -1533,7 +1530,7 @@ index da55409..fa8f470 100644
                                estr, ">", tempDStr->Data(),
                                "</run></blue>", NULL);
              delete tempDStr;
-@@ -3645,16 +3846,16 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3645,16 +3850,16 @@ sc_game_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      if (showFEN) {
          char boardStr [200];
          db->game->GetCurrentPos()->PrintFEN (boardStr, FEN_ALL_FIELDS);
@@ -1553,7 +1550,7 @@ index da55409..fa8f470 100644
  {
      if (!db->inUse) {
          return errorResult (ti, errMsgNotOpen(ti));
-@@ -3703,7 +3904,7 @@ sc_game_load (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3703,7 +3908,7 @@ sc_game_load (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    Merge the specified game into a variation from the current
  //    game position.
  int
@@ -1562,7 +1559,7 @@ index da55409..fa8f470 100644
  {
      const char * usage = "Usage: sc_game merge <baseNum> <gameNum> [<endPly>]";
      if (argc < 4  ||  argc > 5) { return errorResult (ti, usage); }
-@@ -3833,7 +4034,7 @@ sc_game_merge (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3833,7 +4038,7 @@ sc_game_merge (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  
      // And exit the new variation:
      db->game->MoveExitVariation();
@@ -1571,7 +1568,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -3843,7 +4044,7 @@ sc_game_merge (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3843,7 +4048,7 @@ sc_game_merge (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    "nomoves" for standard algebraic without move numbers.
  //    Default output is standard algebraic with move numbers.
  int
@@ -1580,7 +1577,7 @@ index da55409..fa8f470 100644
  {
      bool sanFormat = true;
      bool printMoves = true;
-@@ -3894,11 +4095,13 @@ sc_game_moves (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3894,11 +4099,13 @@ sc_game_moves (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
              delete[] moveStrings;
  #endif
  
@@ -1595,7 +1592,7 @@ index da55409..fa8f470 100644
      for (uint i = plyCount; i > 0; i--, count++) {
          char move [20];
          if (sanFormat) {
-@@ -3911,9 +4114,9 @@ sc_game_moves (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3911,9 +4118,9 @@ sc_game_moves (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
              strCopy (move, moveStrings [i - 1]);
          }
          if (listFormat) {
@@ -1607,7 +1604,7 @@ index da55409..fa8f470 100644
          }
      }
  #ifdef WINCE
-@@ -3921,19 +4124,23 @@ sc_game_moves (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3921,19 +4128,23 @@ sc_game_moves (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  #else
      delete[] moveStrings;
  #endif
@@ -1634,7 +1631,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -3943,7 +4150,7 @@ sc_game_new (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -3943,7 +4154,7 @@ sc_game_new (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    found in the selected database. It then moves to that point
  //    in the game and returns a text string of the move.
  int
@@ -1643,7 +1640,7 @@ index da55409..fa8f470 100644
  {
      const char * usage =
          "Usage: sc_game novelty [-older] base";
-@@ -4026,7 +4233,7 @@ sc_game_novelty (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4026,7 +4237,7 @@ sc_game_novelty (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //        active game.
  //      -unicode (0|1): use unicocde characters (e.g. U+2654 for king). Default=0.
  int
@@ -1652,7 +1649,7 @@ index da55409..fa8f470 100644
  {
      static const char * options [] = {
          "-column", "-comments", "-base", "-gameNumber", "-format",
-@@ -4057,19 +4264,19 @@ sc_game_pgn (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4057,19 +4268,19 @@ sc_game_pgn (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      while (thisArg < argc) {
          int index = strUniqueMatch (argv[thisArg], options);
          if (index == -1) {
@@ -1677,7 +1674,7 @@ index da55409..fa8f470 100644
          }
  
          uint value = strGetUnsigned (argv[thisArg+1]);
-@@ -4149,15 +4356,15 @@ sc_game_pgn (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4149,15 +4360,15 @@ sc_game_pgn (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      }
  
      std::pair<const char*, unsigned> pgnBuf = g->WriteToPGN(lineWidth);
@@ -1696,7 +1693,7 @@ index da55409..fa8f470 100644
  {
      if (db->game->GetNextGame() != NULL) {
          Game * g = db->game->GetNextGame();
-@@ -4165,7 +4372,7 @@ sc_game_pop (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4165,7 +4376,7 @@ sc_game_pop (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          db->gameAltered = g->GetAltered();
          db->game = g;
      }
@@ -1705,7 +1702,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -4175,7 +4382,7 @@ sc_game_pop (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4175,7 +4386,7 @@ sc_game_pop (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    If the optional argument "copy" is present, the new game will be
  //    a copy of the current game.
  int
@@ -1714,7 +1711,7 @@ index da55409..fa8f470 100644
  {
      bool copy = false;
      
-@@ -4192,7 +4399,7 @@ sc_game_push (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4192,7 +4403,7 @@ sc_game_push (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      db->game = g;
      db->gameAltered = false;
  
@@ -1723,7 +1720,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -4200,7 +4407,7 @@ sc_game_push (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4200,7 +4411,7 @@ sc_game_push (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    Saves the current game. If the parameter is 0, a NEW
  //    game is added; otherwise, that game number is REPLACED.
  int
@@ -1732,7 +1729,7 @@ index da55409..fa8f470 100644
  {
      scidBaseT * dbase = db;
      Game* currGame = db->game;
-@@ -4235,7 +4442,7 @@ sc_game_save (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4235,7 +4446,7 @@ sc_game_save (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    specified Tcl interpreter if a score is found.
  //
  static bool
@@ -1741,7 +1738,7 @@ index da55409..fa8f470 100644
                  bool negate, float min, float max)
  {
      char buffer[1024];
-@@ -4249,14 +4456,14 @@ addScoreToList (Tcl_Interp * ti, int moveCounter, const char * comment,
+@@ -4249,14 +4460,14 @@ addScoreToList (Tcl_Interp * ti, int moveCounter, const char * comment,
      // OK, now we have found "+[digit]" or "-[digit]" in the comment,
      // so extract its evaluation and add it to our list:
      sprintf (buffer, "%.1f", (float)moveCounter * 0.5);
@@ -1758,7 +1755,7 @@ index da55409..fa8f470 100644
      return true;
  }
  
-@@ -4285,7 +4492,7 @@ addScoreToList (Tcl_Interp * ti, int moveCounter, const char * comment,
+@@ -4285,7 +4496,7 @@ addScoreToList (Tcl_Interp * ti, int moveCounter, const char * comment,
  //    first move, etc) and the second is the value found.
  //
  int
@@ -1767,7 +1764,7 @@ index da55409..fa8f470 100644
  {
      int moveCounter = 0;
      float max = 10.0;
-@@ -4306,11 +4513,13 @@ sc_game_scores (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4306,11 +4517,13 @@ sc_game_scores (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      Game * g = db->game;
      g->SaveState ();
      g->MoveToPly (0);
@@ -1782,7 +1779,7 @@ index da55409..fa8f470 100644
              continue;
          }
          // Now try finding a score in the comment at the start of the
-@@ -4318,7 +4527,7 @@ sc_game_scores (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4318,7 +4531,7 @@ sc_game_scores (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          if (g->GetNumVariations() > 0) {
              g->MoveIntoVariation (0);
              comment = g->GetMoveComment();
@@ -1791,7 +1788,7 @@ index da55409..fa8f470 100644
                              //false,
                              // For the annotate format of crafty before v18,
                              // replace "false" above with:
-@@ -4328,7 +4537,7 @@ sc_game_scores (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4328,7 +4541,7 @@ sc_game_scores (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          }
      }
      db->game->RestoreState ();
@@ -1800,7 +1797,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -4338,7 +4547,7 @@ sc_game_scores (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4338,7 +4551,7 @@ sc_game_scores (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    returned indicating whether the current game starts with
  //    a setup position.
  int
@@ -1809,7 +1806,7 @@ index da55409..fa8f470 100644
  {
      if (argc == 2) {
          return UI_Result(ti, OK, db->game->HasNonStandardStart());
-@@ -4376,14 +4585,14 @@ sc_game_startBoard (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -4376,14 +4589,14 @@ sc_game_startBoard (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
      }
      db->game->SetStartPos(&scratchPos);
      db->gameAltered = true;
@@ -1826,7 +1823,7 @@ index da55409..fa8f470 100644
  {
      const char * usage =
          "Usage: sc_game strip [comments|variations]";
-@@ -4429,7 +4638,7 @@ sc_game_strip (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4429,7 +4642,7 @@ sc_game_strip (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      
      db->gameAltered = true;
      language = old_lang;
@@ -1835,7 +1832,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -4438,7 +4647,7 @@ sc_game_strip (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4438,7 +4651,7 @@ sc_game_strip (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    its players, site, etc; or its moves; or all its boards
  //    positions.
  int
@@ -1844,7 +1841,7 @@ index da55409..fa8f470 100644
  {
      const char * usage = "Usage: sc_game summary [-base <baseNum>] [-gameNumber <gameNum>] header|boards|moves";
  
-@@ -4528,9 +4737,9 @@ sc_game_summary (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4528,9 +4741,9 @@ sc_game_summary (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
              eco_ToExtendedString (eco, ecoStr);
              dstr->Append ("  ", ecoStr);
          }
@@ -1856,7 +1853,7 @@ index da55409..fa8f470 100644
      }
  
      // Here, a list of the boards or moves is requested:
-@@ -4540,7 +4749,7 @@ sc_game_summary (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4540,7 +4753,7 @@ sc_game_summary (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          if (mode == MODE_BOARDS) {
              char boardStr[100];
              g->GetCurrentPos()->MakeLongStr (boardStr);
@@ -1865,7 +1862,7 @@ index da55409..fa8f470 100644
          } else {
              colorT toMove = g->GetCurrentPos()->GetToMove();
              uint moveCount = g->GetCurrentPos()->GetFullMoveCount();
-@@ -4566,16 +4775,16 @@ sc_game_summary (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4566,16 +4779,16 @@ sc_game_summary (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
                          strAppend (temp, nagstr);
                      }
                  }
@@ -1885,7 +1882,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -4583,7 +4792,7 @@ sc_game_summary (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4583,7 +4796,7 @@ sc_game_summary (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //   Get, set or reload the current game tags, or share them
  //   with another game.
  int
@@ -1894,7 +1891,7 @@ index da55409..fa8f470 100644
  {
      const char * options[] = {
          "get", "set", "reload", "share", NULL
-@@ -4601,7 +4810,7 @@ sc_game_tags (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4601,7 +4814,7 @@ sc_game_tags (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          case OPT_SHARE:  return sc_game_tags_share (cd, ti, argc, argv);
          default:         return InvalidCommand (ti, "sc_game tags", options);
      }
@@ -1903,7 +1900,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -4613,7 +4822,7 @@ sc_game_tags (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4613,7 +4826,7 @@ sc_game_tags (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    For "Extra", the function returns all the extra tags as one long
  //    string, in PGN format, one tag per line.
  int
@@ -1912,7 +1909,7 @@ index da55409..fa8f470 100644
  {
  
      static const char * options [] = {
-@@ -4659,19 +4868,19 @@ sc_game_tags_get (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4659,19 +4872,19 @@ sc_game_tags_get (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      switch (index) {
      case T_Event:
          s = g->GetEventStr();  if (!s) { s = "?"; }
@@ -1935,7 +1932,7 @@ index da55409..fa8f470 100644
          }
          break;
  
-@@ -4686,17 +4895,17 @@ sc_game_tags_get (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4686,17 +4899,17 @@ sc_game_tags_get (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  
      case T_Round:
          s = g->GetRoundStr();  if (!s) { s = "?"; }
@@ -1956,7 +1953,7 @@ index da55409..fa8f470 100644
          break;
  
      case T_Result:
-@@ -4718,7 +4927,7 @@ sc_game_tags_get (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4718,7 +4931,7 @@ sc_game_tags_get (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          {
              ecoStringT ecoStr;
              eco_ToExtendedString (g->GetEco(), ecoStr);
@@ -1965,7 +1962,7 @@ index da55409..fa8f470 100644
              break;
          }
  
-@@ -4726,7 +4935,7 @@ sc_game_tags_get (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4726,7 +4939,7 @@ sc_game_tags_get (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          {
              char dateStr[20];
              date_DecodeToString (g->GetEventDate(), dateStr);
@@ -1974,7 +1971,7 @@ index da55409..fa8f470 100644
          }
          break;
  
-@@ -4744,7 +4953,7 @@ sc_game_tags_get (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4744,7 +4957,7 @@ sc_game_tags_get (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
              uint numTags = g->GetNumExtraTags();
              tagT * ptagList = g->GetExtraTags();
              while (numTags > 0) {
@@ -1983,7 +1980,7 @@ index da55409..fa8f470 100644
                                    "\"\n", NULL);
                  numTags--;
                  ptagList++;
-@@ -4756,7 +4965,7 @@ sc_game_tags_get (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4756,7 +4969,7 @@ sc_game_tags_get (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          return InvalidCommand (ti, "sc_game tags get", options);
      }
  
@@ -1992,7 +1989,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -4768,7 +4977,7 @@ sc_game_tags_get (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4768,7 +4981,7 @@ sc_game_tags_get (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    Last arg is the non-standard tags, a string of lines in the format:
  //        [TagName "TagValue"]
  int
@@ -2001,7 +1998,7 @@ index da55409..fa8f470 100644
  {
      const char * options[] = {
          "-event", "-site", "-date", "-round", "-white", "-black", "-result",
-@@ -4817,13 +5026,14 @@ sc_game_tags_set (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4817,13 +5030,14 @@ sc_game_tags_set (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
                  db->game->SetEventDate (date_EncodeFromString(value));
                  break;
              case T_EXTRA:
@@ -2017,7 +2014,7 @@ index da55409..fa8f470 100644
                          // Error from Tcl_SplitList!
                          return errorResult (ti, "Error parsing extra tags.");
                      }
-@@ -4843,13 +5053,16 @@ sc_game_tags_set (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4843,13 +5057,16 @@ sc_game_tags_set (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
                      }
                      Tcl_Free ((char *) largv);
                  }
@@ -2035,7 +2032,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -4858,12 +5071,12 @@ sc_game_tags_set (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -4858,12 +5075,12 @@ sc_game_tags_set (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    Useful when a name that may occur in the current game has been
  //    edited.
  int
@@ -2051,7 +2048,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -4882,7 +5095,7 @@ sc_game_tags_reload (ClientData cd, Tcl_Interp * ti, int argc, const char ** arg
+@@ -4882,7 +5099,7 @@ sc_game_tags_reload (ClientData cd, Tcl_Interp * ti, int argc, const char ** arg
  //    and the new value. If the parameter is "update", the changes
  //    will be made and the empty string is returned.
  int
@@ -2060,7 +2057,7 @@ index da55409..fa8f470 100644
  {
      const char * usage =
          "Usage: sc_game tags share [check|update] <gameNumber1> <gameNumber2>";
-@@ -4898,14 +5111,14 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -4898,14 +5115,14 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
      // Get the two game numbers, which should be different and non-zero.
      uint gn1 = strGetUnsigned (argv[4]);
      uint gn2 = strGetUnsigned (argv[5]);
@@ -2081,7 +2078,7 @@ index da55409..fa8f470 100644
  
      // Make a local copy of each index entry:
      IndexEntry ie1 = *(db->getIndexEntry(gn1 - 1));
-@@ -4924,6 +5137,8 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -4924,6 +5141,8 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
      strTrimDate (dateStr2);
      if (date1 == 0) { *dateStr1 = 0; }
      if (date2 == 0) { *dateStr2 = 0; }
@@ -2090,7 +2087,7 @@ index da55409..fa8f470 100644
      // Check if one date is a prefix of the other:
      if (!strEqual (dateStr1, dateStr2)  &&  strIsPrefix (dateStr1, dateStr2)) {
          // Copy date grom game 2 to game 1:
-@@ -4931,10 +5146,10 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -4931,10 +5150,10 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
              ie1.SetDate (date2);
              updated1 = true;
          } else {
@@ -2105,7 +2102,7 @@ index da55409..fa8f470 100644
          }
      }
      if (!strEqual (dateStr1, dateStr2)  &&  strIsPrefix (dateStr2, dateStr1)) {
-@@ -4943,10 +5158,10 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -4943,10 +5162,10 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
              ie2.SetDate (date1);
              updated2 = true;
          } else {
@@ -2120,7 +2117,7 @@ index da55409..fa8f470 100644
          }
      }
  
-@@ -4963,10 +5178,10 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -4963,10 +5182,10 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
              ie1.SetEvent (event2);
              updated1 = true;
          } else {
@@ -2135,7 +2132,7 @@ index da55409..fa8f470 100644
          }
      }
      if (event2empty  && !event1empty) {
-@@ -4975,10 +5190,10 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -4975,10 +5194,10 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
              ie2.SetEvent (event1);
              updated2 = true;
          } else {
@@ -2150,7 +2147,7 @@ index da55409..fa8f470 100644
          }
      }
  
-@@ -4995,10 +5210,10 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -4995,10 +5214,10 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
              ie1.SetRound (round2);
              updated1 = true;
          } else {
@@ -2165,7 +2162,7 @@ index da55409..fa8f470 100644
          }
      }
      if (round2empty  && !round1empty) {
-@@ -5007,10 +5222,10 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -5007,10 +5226,10 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
              ie2.SetRound (round1);
              updated2 = true;
          } else {
@@ -2180,7 +2177,7 @@ index da55409..fa8f470 100644
          }
      }
  
-@@ -5025,10 +5240,10 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -5025,10 +5244,10 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
              ie1.SetWhiteElo (welo2);
              updated1 = true;
          } else {
@@ -2195,7 +2192,7 @@ index da55409..fa8f470 100644
          }
      }
      if (welo2 == 0  &&  welo1 != 0) {
-@@ -5037,10 +5252,10 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -5037,10 +5256,10 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
              ie2.SetWhiteElo (welo1);
              updated2 = true;
          } else {
@@ -2210,7 +2207,7 @@ index da55409..fa8f470 100644
          }
      }
      if (belo1 == 0  &&  belo2 != 0) {
-@@ -5049,10 +5264,10 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -5049,10 +5268,10 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
              ie1.SetBlackElo (belo2);
              updated1 = true;
          } else {
@@ -2225,7 +2222,7 @@ index da55409..fa8f470 100644
          }
      }
      if (belo2 == 0  &&  belo1 != 0) {
-@@ -5061,10 +5276,10 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -5061,10 +5280,10 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
              ie2.SetBlackElo (belo1);
              updated2 = true;
          } else {
@@ -2240,7 +2237,7 @@ index da55409..fa8f470 100644
          }
      }
  
-@@ -5080,7 +5295,7 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -5080,7 +5299,7 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
               db->clearCaches();
          }
      }
@@ -2249,7 +2246,7 @@ index da55409..fa8f470 100644
  }
  
  //////////////////////////////////////////////////////////////////////
-@@ -5090,7 +5305,7 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -5090,7 +5309,7 @@ sc_game_tags_share (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
  // sc_info:
  //    General Scid Information commands.
  int
@@ -2258,7 +2255,7 @@ index da55409..fa8f470 100644
  {
      static const char * options [] = {
          "clipbase", "decimal", "fsize", "gzip",
-@@ -5140,7 +5355,7 @@ sc_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5140,7 +5359,7 @@ sc_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          {
              uint i = 0;
              while (ratingTypeNames[i] != NULL) {
@@ -2267,7 +2264,7 @@ index da55409..fa8f470 100644
                  i++;
              }
          }
-@@ -5188,7 +5403,7 @@ sc_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5188,7 +5407,7 @@ sc_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          return InvalidCommand (ti, "sc_info", options);
      };
  
@@ -2276,7 +2273,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -5199,7 +5414,7 @@ sc_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5199,7 +5418,7 @@ sc_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    To distinguish estimates from correct sizes, an estimate is
  //    returned as a negative number.
  int
@@ -2285,7 +2282,7 @@ index da55409..fa8f470 100644
  {
      if (argc != 3) {
          return errorResult (ti, "Usage: sc_info fsize <filename>");
-@@ -5299,7 +5514,7 @@ sc_info_fsize (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5299,7 +5518,7 @@ sc_info_fsize (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  // sc_info limit:
  //    Limits that Scid imposes.
  int
@@ -2294,7 +2291,7 @@ index da55409..fa8f470 100644
  {
      static const char * options [] = {
          "elo", "games", "nags", "year", "bases", NULL
-@@ -5345,7 +5560,7 @@ sc_info_limit (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5345,7 +5564,7 @@ sc_info_limit (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    Returns a Scid file suffix for a database file type.
  //    The suffix is returned with the leading dot.
  int
@@ -2303,7 +2300,7 @@ index da55409..fa8f470 100644
  {
      static const char * options [] = {
          "game", "index", "name", NULL
-@@ -5375,7 +5590,7 @@ sc_info_suffix (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5375,7 +5594,7 @@ sc_info_suffix (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //   Set up a tablebase directory, or check if a certain
  //   tablebase is available.
  int
@@ -2312,7 +2309,7 @@ index da55409..fa8f470 100644
  {
      const char * usage =
          "Usage: sc_info tb [<directory>|available <material>|cache <size-kb>]";
-@@ -5418,7 +5633,7 @@ sc_info_tb (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5418,7 +5637,7 @@ sc_info_tb (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          // at the next tablebase initialisation.
          uint cachesize = strGetUnsigned (argv[3]);
          scid_TB_SetCacheSize (cachesize * 1024);
@@ -2321,7 +2318,7 @@ index da55409..fa8f470 100644
      } else {
          return errorResult (ti, usage);
      }
-@@ -5428,7 +5643,7 @@ sc_info_tb (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5428,7 +5647,7 @@ sc_info_tb (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //  MOVE functions
  
  int
@@ -2330,7 +2327,7 @@ index da55409..fa8f470 100644
  {
      static const char * options [] = {
          "add", "addSan", "addUCI", "back", "end", "forward",
-@@ -5478,7 +5693,7 @@ sc_move (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5478,7 +5697,7 @@ sc_move (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
                  v.push_back(strGetInteger(argv[i]));
              }
              db->game->MoveTo(v);
@@ -2339,7 +2336,7 @@ index da55409..fa8f470 100644
          }
          return errorResult (ti, "Usage: sc_move ply <plynumber>");
  
-@@ -5490,14 +5705,14 @@ sc_move (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5490,14 +5709,14 @@ sc_move (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          return InvalidCommand (ti, "sc_move", options);
      }
  
@@ -2356,7 +2353,7 @@ index da55409..fa8f470 100644
  {
  
      if (argc != 5) {
-@@ -5527,7 +5742,7 @@ sc_move_add (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5527,7 +5746,7 @@ sc_move_add (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          err = db->game->AddMove (&sm, NULL);
          if (err == OK) {
              db->gameAltered = true;
@@ -2365,7 +2362,7 @@ index da55409..fa8f470 100644
          }
      }
      return errorResult (ti, "Error adding move.");
-@@ -5540,12 +5755,12 @@ sc_move_add (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5540,12 +5759,12 @@ sc_move_add (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    list elements, or a mixture of both. Move numbers are ignored
  //    but variations/comments/annotations are parsed and added.
  int
@@ -2380,7 +2377,7 @@ index da55409..fa8f470 100644
  
      PgnParser parser;
      char buf [1000];
-@@ -5555,8 +5770,8 @@ sc_move_addSan (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5555,8 +5774,8 @@ sc_move_addSan (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          parser.SetResultWarnings (false);
          errorT err = parser.ParseMoves (db->game, buf, 1000);
          if (err != OK  ||  parser.ErrorCount() > 0) {
@@ -2391,7 +2388,7 @@ index da55409..fa8f470 100644
          }
          db->gameAltered = true;
          argPtr++;
-@@ -5564,7 +5779,7 @@ sc_move_addSan (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5564,7 +5783,7 @@ sc_move_addSan (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      }
  
      // If we reach here, all moves were successfully added:
@@ -2400,7 +2397,7 @@ index da55409..fa8f470 100644
  }
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  // sc_move_addUCI:
-@@ -5572,10 +5787,10 @@ sc_move_addSan (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5572,10 +5791,10 @@ sc_move_addSan (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    to the game. The result is translated.
  //    In case of an error, return the moves that could be converted.
  int
@@ -2413,7 +2410,7 @@ index da55409..fa8f470 100644
      char * ptr = (char *) argv[2];
  
      while (*ptr != 0) {
-@@ -5603,25 +5818,25 @@ sc_move_addUCI (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5603,25 +5822,25 @@ sc_move_addUCI (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
              db->gameAltered = true;
              db->game->GetPrevSAN (tmp);
              transPieces(tmp);
@@ -2444,7 +2441,7 @@ index da55409..fa8f470 100644
  {
      int numMovesTakenBack = 0;
      int count = 1;
-@@ -5636,14 +5851,14 @@ sc_move_back (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5636,14 +5855,14 @@ sc_move_back (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      }
  
      setUintResult (ti, numMovesTakenBack);
@@ -2461,7 +2458,7 @@ index da55409..fa8f470 100644
  {
      int numMovesMade = 0;
      int count = 1;
-@@ -5659,7 +5874,7 @@ sc_move_forward (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5659,7 +5878,7 @@ sc_move_forward (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      }
  
      setUintResult (ti, numMovesMade);
@@ -2470,7 +2467,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -5668,7 +5883,7 @@ sc_move_forward (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5668,7 +5887,7 @@ sc_move_forward (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    the specified place in the PGN output (given as a byte count
  //    from the start of the output).
  int
@@ -2479,7 +2476,7 @@ index da55409..fa8f470 100644
  {
      if (argc != 3) {
          return errorResult (ti, "Usage: sc_move pgn <offset>");
-@@ -5676,7 +5891,7 @@ sc_move_pgn (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5676,7 +5895,7 @@ sc_move_pgn (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  
      uint offset = strGetUnsigned (argv[2]);
      db->game->MoveToLocationInPGN (offset);
@@ -2488,7 +2485,7 @@ index da55409..fa8f470 100644
  }
  
  
-@@ -5685,7 +5900,7 @@ sc_move_pgn (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5685,7 +5904,7 @@ sc_move_pgn (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //  POSITION functions
  
  int
@@ -2497,7 +2494,7 @@ index da55409..fa8f470 100644
  {
      static const char * options [] = {
          "addNag", "analyze", "bestSquare", "board", "clearNags",
-@@ -5720,7 +5935,7 @@ sc_pos (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5720,7 +5939,7 @@ sc_pos (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  
      case POS_BOARD:
          db->game->GetCurrentPos()->MakeLongStr (boardStr);
@@ -2506,7 +2503,7 @@ index da55409..fa8f470 100644
          break;
  
      case POS_CLEARNAGS:
-@@ -5730,14 +5945,14 @@ sc_pos (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5730,14 +5949,14 @@ sc_pos (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  
      case POS_FEN:
          db->game->GetCurrentPos()->PrintFEN (boardStr, FEN_ALL_FIELDS);
@@ -2523,7 +2520,7 @@ index da55409..fa8f470 100644
          }
          break;
  
-@@ -5803,14 +6018,14 @@ sc_pos (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5803,14 +6022,14 @@ sc_pos (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
              if (argc > 2  &&  strIsPrefix (argv[2], "flip")) { flip = true; }
              DString * dstr = new DString;
              db->game->GetCurrentPos()->DumpLatexBoard (dstr, flip);
@@ -2540,7 +2537,7 @@ index da55409..fa8f470 100644
          for (size_t i=0, n=v.size(); i < n; i++) res.push_back(v[i]);
          return UI_Result(ti, OK, res);
      }
-@@ -5833,32 +6048,33 @@ sc_pos (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5833,32 +6052,33 @@ sc_pos (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          }
          mlist.Sort();
          char tmp[16];
@@ -2583,7 +2580,7 @@ index da55409..fa8f470 100644
          }
          break;
  
-@@ -5866,7 +6082,7 @@ sc_pos (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5866,7 +6086,7 @@ sc_pos (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          return InvalidCommand (ti, "sc_pos", options);
      }
  
@@ -2592,7 +2589,7 @@ index da55409..fa8f470 100644
  }
  
  
-@@ -5874,7 +6090,7 @@ sc_pos (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5874,7 +6094,7 @@ sc_pos (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  // sc_pos_addNag:
  //    Adds a NAG (annotation symbol) for the current move.
  int
@@ -2601,7 +2598,7 @@ index da55409..fa8f470 100644
  {
      if (argc != 3) {
          return errorResult (ti, "Usage: sc_pos addNag <nagvalue>");
-@@ -5892,7 +6108,7 @@ sc_pos_addNag (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5892,7 +6112,7 @@ sc_pos_addNag (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  		}
  		db->gameAltered = true;
  	}
@@ -2610,7 +2607,7 @@ index da55409..fa8f470 100644
  }
  
  
-@@ -5904,7 +6120,7 @@ sc_pos_addNag (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5904,7 +6124,7 @@ sc_pos_addNag (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    (from the perspective of the side to move) and the best move.
  //    If there are no legal moves, the second element is the empty string.
  int
@@ -2619,7 +2616,7 @@ index da55409..fa8f470 100644
  {
      const char * usage = "Usage: sc_pos analyze [<option> <value> ...]";
  
-@@ -5966,7 +6182,7 @@ sc_pos_analyze (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5966,7 +6186,7 @@ sc_pos_analyze (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      if (mlist.Size() > 0) {
          pos->MakeSANString (mlist.Get(0), moveStr, SAN_MATETEST);
      }
@@ -2628,7 +2625,7 @@ index da55409..fa8f470 100644
      res.push_back(score);
      res.push_back(moveStr);
      return UI_Result(ti, OK, res);
-@@ -5979,7 +6195,7 @@ sc_pos_analyze (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -5979,7 +6199,7 @@ sc_pos_analyze (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    a move. Used for smart move completion.
  //    Returns -1 if no legal moves go to or from the square.
  int
@@ -2637,7 +2634,7 @@ index da55409..fa8f470 100644
  {
      if (argc != 3) {
          return errorResult (ti, "Usage: sc_pos bestSquare <square>");
-@@ -6063,14 +6279,14 @@ sc_pos_bestSquare (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -6063,14 +6283,14 @@ sc_pos_bestSquare (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      if (sm->from == sq) { bestSq = sm->to; }
      setUintResult (ti, bestSq);
  
@@ -2654,7 +2651,7 @@ index da55409..fa8f470 100644
  {
      byte * nag = db->game->GetNags();
      if (nag[0] == 0) {
-@@ -6079,18 +6295,18 @@ sc_pos_getNags (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -6079,18 +6299,18 @@ sc_pos_getNags (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      while (*nag) {
          char temp[20];
          game_printNag (*nag, temp, true, PGN_FORMAT_Plain);
@@ -2676,7 +2673,7 @@ index da55409..fa8f470 100644
  {
      const char * usage = "Usage: sc_pos hash [full|pawn]";
      bool pawnHashOnly = false;
-@@ -6119,7 +6335,7 @@ sc_pos_hash (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -6119,7 +6339,7 @@ sc_pos_hash (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    a "bitmaps2" directory.
  //    The directory can be overridden with the "-path" command.
  int
@@ -2685,7 +2682,7 @@ index da55409..fa8f470 100644
  {
      const char * usage = "Usage: sc_pos html [-flip <boolean>] [-path <path>] [<style:0|1>]";
      uint style = htmlDiagStyle;
-@@ -6142,9 +6358,9 @@ sc_pos_html (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -6142,9 +6362,9 @@ sc_pos_html (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  
      DString * dstr = new DString;
      db->game->GetCurrentPos()->DumpHtmlBoard (dstr, style, path, flip);
@@ -2697,7 +2694,7 @@ index da55409..fa8f470 100644
  }
  
  
-@@ -6154,7 +6370,7 @@ sc_pos_html (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -6154,7 +6374,7 @@ sc_pos_html (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //   Valid arguments are: start, end, vstart and vend (or unique
  //   abbreviations thereof).
  int
@@ -2706,7 +2703,7 @@ index da55409..fa8f470 100644
  {
      static const char * options [] = {
          "start", "end", "vstart", "vend", NULL
-@@ -6181,7 +6397,7 @@ sc_pos_isAt (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -6181,7 +6401,7 @@ sc_pos_isAt (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      default:
          return errorResult (ti, "Usage: sc_pos isAt start|end|vstart|vend");
      }
@@ -2715,7 +2712,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -6189,7 +6405,7 @@ sc_pos_isAt (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -6189,7 +6409,7 @@ sc_pos_isAt (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    Takes two squares (from and to, in either order) and
  //    returns true if they represent a pawn promotion move.
  int
@@ -2724,7 +2721,7 @@ index da55409..fa8f470 100644
  {
      if (argc != 4) {
          return errorResult (ti, "Usage: sc_move isPromo <square> <square>");
-@@ -6210,7 +6426,7 @@ sc_pos_isPromo (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -6210,7 +6430,7 @@ sc_pos_isPromo (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  // sc_pos_isLegal: returns true if the move between the two provided
  //    squares (either could be the from square) is legal.
  int
@@ -2733,7 +2730,7 @@ index da55409..fa8f470 100644
  {
      if (argc != 4) {
          return errorResult (ti, "Usage: sc_pos isLegal <square> <square>");
-@@ -6241,7 +6457,7 @@ sc_pos_isLegal (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -6241,7 +6461,7 @@ sc_pos_isLegal (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //     castling respectively, so that no move is a prefix of
  //     any other move.
  int
@@ -2742,7 +2739,7 @@ index da55409..fa8f470 100644
  {
      if (argc != 3  &&  argc != 4) {
          return errorResult (ti, "Usage: sc_pos matchMoves <movetext-prefix>");
-@@ -6259,7 +6475,7 @@ sc_pos_matchMoves (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -6259,7 +6479,7 @@ sc_pos_matchMoves (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          if (strEqual (str, "O-O")) { strCopy (str, "OK"); }
          if (strEqual (str, "O-O-O")) { strCopy (str, "OQ"); }
          if (strIsPrefix (prefix, str)) {
@@ -2751,7 +2748,7 @@ index da55409..fa8f470 100644
          }
      }
  
-@@ -6272,7 +6488,7 @@ sc_pos_matchMoves (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -6272,7 +6492,7 @@ sc_pos_matchMoves (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          for (uint i=0; i < sanList.num; i++) {
              strCopyExclude (str, sanList.list[i], "x=+#");
              if (strIsPrefix (newPrefix, str)) {
@@ -2760,7 +2757,7 @@ index da55409..fa8f470 100644
              }
          }
  #ifdef WINCE
-@@ -6300,19 +6516,19 @@ sc_pos_matchMoves (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -6300,19 +6520,19 @@ sc_pos_matchMoves (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
                  str[5] = 0;
              }
              if (strIsPrefix (prefix, str)) {
@@ -2783,7 +2780,7 @@ index da55409..fa8f470 100644
  {
      if (argc != 2) {
          return errorResult (ti, "Usage: sc_pos moves");
-@@ -6322,9 +6538,9 @@ sc_pos_moves (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -6322,9 +6542,9 @@ sc_pos_moves (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      p->CalcSANStrings (&sanList, SAN_NO_CHECKTEST);
  
      for (uint i=0; i < sanList.num; i++) {
@@ -2795,7 +2792,7 @@ index da55409..fa8f470 100644
  }
  
  
-@@ -6334,7 +6550,7 @@ sc_pos_moves (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -6334,7 +6554,7 @@ sc_pos_moves (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    returns the board position corresponding to the
  //    last position reached in the game.
  int
@@ -2804,7 +2801,7 @@ index da55409..fa8f470 100644
  {
      if (argc != 3) {
          return errorResult (ti, "Usage: sc_pos pgnBoard <pgn-text>");
-@@ -6368,9 +6584,9 @@ sc_pos_pgnBoard (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -6368,9 +6588,9 @@ sc_pos_pgnBoard (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      char boardStr [200];
      g->GetCurrentPos()->MakeLongStr (boardStr);
  
@@ -2816,7 +2813,7 @@ index da55409..fa8f470 100644
  }
  
  
-@@ -6378,7 +6594,7 @@ sc_pos_pgnBoard (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -6378,7 +6598,7 @@ sc_pos_pgnBoard (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  // sc_pos_probe:
  //    Probes tablebases for the current move.
  int
@@ -2825,7 +2822,7 @@ index da55409..fa8f470 100644
  {
      const char * usage = "Usage: sc_pos probe [score|report|optimal|board <sq>]";
      static const char * options[] = {
-@@ -6397,7 +6613,7 @@ sc_pos_probe (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -6397,7 +6617,7 @@ sc_pos_probe (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          // Tablebase report:
          DString * tbReport = new DString;
          if (probe_tablebase (ti, PROBE_REPORT, tbReport)) {
@@ -2834,7 +2831,7 @@ index da55409..fa8f470 100644
          }
          delete tbReport;
      } else if (option == OPT_OPTIMAL) {
-@@ -6406,7 +6622,7 @@ sc_pos_probe (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -6406,7 +6626,7 @@ sc_pos_probe (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          // Optimal moves from tablebase:
          DString * tbOptimal = new DString;
          if (probe_tablebase (ti, PROBE_OPTIMAL, tbOptimal)) {
@@ -2843,7 +2840,7 @@ index da55409..fa8f470 100644
          }
          delete tbOptimal;
      } else if (option == OPT_SCORE) {
-@@ -6419,7 +6635,7 @@ sc_pos_probe (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -6419,7 +6639,7 @@ sc_pos_probe (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      } else {
          return errorResult (ti, usage);
      }
@@ -2852,7 +2849,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -6427,7 +6643,7 @@ sc_pos_probe (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -6427,7 +6647,7 @@ sc_pos_probe (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    Probes tablebases for the current position with one piece
  //    (specified by its square) relocated to each empty board square.
  int
@@ -2861,7 +2858,7 @@ index da55409..fa8f470 100644
  {
      const char * usage = "Usage: sc_pos probe board <square>";
  
-@@ -6446,7 +6662,7 @@ sc_pos_probe_board (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -6446,7 +6666,7 @@ sc_pos_probe_board (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
  
      Position pos = *(db->game->GetCurrentPos());
      const pieceT * board = pos.GetBoard();
@@ -2870,7 +2867,7 @@ index da55409..fa8f470 100644
  
      for (squareT toSq = A1; toSq <= H8; toSq++) {
          const char * result = "";
-@@ -6467,16 +6683,16 @@ sc_pos_probe_board (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -6467,16 +6687,16 @@ sc_pos_probe_board (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
              }
              pos.RelocatePiece (toSq, sq);
          }
@@ -2890,7 +2887,7 @@ index da55409..fa8f470 100644
  {
      if (argc != 3) {
          return errorResult (ti, "Usage: sc_pos setComment <comment-text>");
-@@ -6497,7 +6713,7 @@ sc_pos_setComment (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -6497,7 +6717,7 @@ sc_pos_setComment (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
              db->gameAltered = true;
          }
      }
@@ -2899,7 +2896,7 @@ index da55409..fa8f470 100644
  }
  
  
-@@ -6510,7 +6726,7 @@ UI_res_t sc_name_spellcheck (UI_handle_t ti, scidBaseT& dbase, const SpellChecke
+@@ -6510,7 +6730,7 @@ UI_res_t sc_name_spellcheck (UI_handle_t ti, scidBaseT& dbase, const SpellChecke
  
  
  int
@@ -2908,7 +2905,7 @@ index da55409..fa8f470 100644
  {
      static const char * options [] = {
          "correct", "edit", "info", "match", "plist",
-@@ -6575,14 +6791,14 @@ sc_name (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -6575,14 +6795,14 @@ sc_name (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          return InvalidCommand (ti, "sc_name", options);
      }
  
@@ -2925,7 +2922,7 @@ index da55409..fa8f470 100644
  {
      nameT nt = NAME_INVALID;
      if (argc == 4) { nt = NameBase::NameTypeFromString (argv[2]); }
-@@ -6744,7 +6960,7 @@ sc_name_correct (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -6744,7 +6964,7 @@ sc_name_correct (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      errorT err = db->clearCaches();
      if (err != OK) return UI_Result(ti, ERROR_FileWrite);
  
@@ -2934,7 +2931,7 @@ index da55409..fa8f470 100644
      res.push_back(correctionCount);
      res.push_back(errorCount);
      res.push_back(instanceCount);
-@@ -6763,7 +6979,7 @@ sc_name_correct (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -6763,7 +6983,7 @@ sc_name_correct (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    3rd arg: name to edit.
  //    4th arg: new name -- it might already exist in the namebase.
  int
@@ -2943,7 +2940,7 @@ index da55409..fa8f470 100644
  {
      const char * usage = "Usage: sc_name edit <type> <oldName> <newName>";
      const char * options[] = {
-@@ -6826,9 +7042,9 @@ sc_name_edit (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -6826,9 +7046,9 @@ sc_name_edit (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      idNumberT oldID = 0;
      if (option != OPT_DATE  &&  option != OPT_EVENTDATE) {
          if (db->getNameBase()->FindExactName (nt, oldName, &oldID) != OK) {
@@ -2955,7 +2952,7 @@ index da55409..fa8f470 100644
          }
      }
  
-@@ -6958,8 +7174,8 @@ sc_name_edit (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -6958,8 +7178,8 @@ sc_name_edit (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          sprintf (temp, "Changed %u of \"%s\" to \"%s\".",
                   numChanges, oldName, newName);
      }
@@ -2966,7 +2963,7 @@ index da55409..fa8f470 100644
  }
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  // sc_name_retrievename:
-@@ -6980,7 +7196,7 @@ UI_res_t sc_name_retrievename (UI_handle_t ti, const SpellChecker& sp, int argc,
+@@ -6980,7 +7200,7 @@ UI_res_t sc_name_retrievename (UI_handle_t ti, const SpellChecker& sp, int argc,
  //    success rate with white and black, common openings by ECO code,
  //    and Elo rating history.
  int
@@ -2975,7 +2972,7 @@ index da55409..fa8f470 100644
  {
      static char * lastPlayerName = NULL;
      const char * usageStr = "Usage: sc_name info [-ratings|-htext] <player>";
-@@ -7071,10 +7287,10 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -7071,10 +7291,10 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      idNumberT id = 0;
      if (db->getNameBase()->FindExactName (NAME_PLAYER, playerName, &id) != OK) {
          if (! ratingsOnly) {
@@ -2988,7 +2985,7 @@ index da55409..fa8f470 100644
      }
  
      // Try to find opponent in this database:
-@@ -7249,12 +7465,12 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -7249,12 +7469,12 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      SpellChecker* spChecker = spellChk;
  
      if (ratingsOnly) { goto doRatings; }
@@ -3003,7 +3000,7 @@ index da55409..fa8f470 100644
      }
      sprintf (temp, "  %s%u%s %s (%s: %u)",
               htextOutput ? "<red><run sc_name info -faA {}; ::windows::stats::Refresh>" : "",
-@@ -7264,18 +7480,18 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -7264,18 +7484,18 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
                translate (ti, "game") : translate (ti, "games")),
               translate (ti, "Filter"),
               totalcount[STATS_FILTER]);
@@ -3026,7 +3023,7 @@ index da55409..fa8f470 100644
  
      // Print biography if applicable:
      if (spChecker != NULL) {
-@@ -7284,11 +7500,11 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -7284,11 +7504,11 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          if (pInfo != 0) {
              for (size_t i=0, n=bio.size(); i < n; i++) {
                  if (i == 0) {
@@ -3040,7 +3037,7 @@ index da55409..fa8f470 100644
              }
          }
      }
-@@ -7296,7 +7512,7 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -7296,7 +7516,7 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  
      strCopy (temp, translate (ti, "PInfoAll"));
      if (! htextOutput) { strTrimMarkup (temp); }
@@ -3049,7 +3046,7 @@ index da55409..fa8f470 100644
                        endHeading, newline, NULL);
  
      score = percent = 0;
-@@ -7324,7 +7540,7 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -7324,7 +7544,7 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
               htextOutput ? "<red><run sc_name info -fa {}; ::windows::stats::Refresh>" : "",
               whitecount[STATS_ALL],
               htextOutput ? "</run></red></tt>" : "");
@@ -3058,7 +3055,7 @@ index da55409..fa8f470 100644
  
      score = percent = 0;
      if (blackcount[STATS_ALL] > 0) {
-@@ -7351,7 +7567,7 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -7351,7 +7571,7 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
               htextOutput ? "<red><run sc_name info -fA {}; ::windows::stats::Refresh>" : "",
               blackcount[STATS_ALL],
               htextOutput ? "</run></red></tt>" : "");
@@ -3067,7 +3064,7 @@ index da55409..fa8f470 100644
  
      score = percent = 0;
      if (totalcount[STATS_ALL] > 0) {
-@@ -7378,13 +7594,13 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -7378,13 +7598,13 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
               htextOutput ? "<red><run sc_name info -faA {}; ::windows::stats::Refresh>" : "",
               totalcount[STATS_ALL],
               htextOutput ? "</run></red></tt>" : "");
@@ -3083,7 +3080,7 @@ index da55409..fa8f470 100644
                        endHeading, newline, NULL);
      score = percent = 0;
      if (whitecount[STATS_FILTER] > 0) {
-@@ -7404,7 +7620,7 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -7404,7 +7624,7 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
               score / 2, decimalPointChar, score % 2 ? '5' : '0',
               "", whitecount[STATS_FILTER],
               htextOutput ? "</tt>" : "");
@@ -3092,7 +3089,7 @@ index da55409..fa8f470 100644
  
      score = percent = 0;
      if (blackcount[STATS_FILTER] > 0) {
-@@ -7424,7 +7640,7 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -7424,7 +7644,7 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
               score / 2, decimalPointChar, score % 2 ? '5' : '0',
               "", blackcount[STATS_FILTER],
               htextOutput ? "</tt>" : "");
@@ -3101,7 +3098,7 @@ index da55409..fa8f470 100644
  
      score = percent = 0;
      if (totalcount[STATS_FILTER] > 0) {
-@@ -7444,12 +7660,12 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -7444,12 +7664,12 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
               score / 2, decimalPointChar, score % 2 ? '5' : '0',
               "", totalcount[STATS_FILTER],
               htextOutput ? "</tt>" : "");
@@ -3116,7 +3113,7 @@ index da55409..fa8f470 100644
                            translate (ti, "PInfoAgainst"), " ",
                            startBold, opponent, endBold, ":",
                            endHeading, newline, NULL);
-@@ -7479,7 +7695,7 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -7479,7 +7699,7 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
                   htextOutput ? "<red><run sc_name info -oa {}; ::windows::stats::Refresh>" : "",
                   whitecount[STATS_OPP],
                   htextOutput ? "</run></red></tt>" : "");
@@ -3125,7 +3122,7 @@ index da55409..fa8f470 100644
  
          score = percent = 0;
          if (blackcount[STATS_OPP] > 0) {
-@@ -7506,7 +7722,7 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -7506,7 +7726,7 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
                   htextOutput ? "<red><run sc_name info -oA {}; ::windows::stats::Refresh>" : "",
                   blackcount[STATS_OPP],
                   htextOutput ? "</run></red></tt>" : "");
@@ -3134,7 +3131,7 @@ index da55409..fa8f470 100644
  
          score = percent = 0;
          if (totalcount[STATS_OPP] > 0) {
-@@ -7533,7 +7749,7 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -7533,7 +7753,7 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
                   htextOutput ? "<red><run sc_name info -oaA {}; ::windows::stats::Refresh>" : "",
                   totalcount[STATS_OPP],
                   htextOutput ? "</run></red></tt>" : "");
@@ -3143,7 +3140,7 @@ index da55409..fa8f470 100644
      }
  
      // Now print common openings played:
-@@ -7552,28 +7768,28 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -7552,28 +7772,28 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
                  if (count == 0) {
                      const char * s = (color == WHITE ? "PInfoMostWhite" :
                                        "PInfoMostBlack");
@@ -3179,7 +3176,7 @@ index da55409..fa8f470 100644
                  ecoCount[color][mostPlayedIdx] = 0;
              }
          }
-@@ -7582,7 +7798,7 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -7582,7 +7802,7 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
    doRatings:
      if (seenRating) {
          if (! ratingsOnly) {
@@ -3188,7 +3185,7 @@ index da55409..fa8f470 100644
                                translate (ti, "PInfoRating"), ":",
                                endHeading, NULL);
          }
-@@ -7595,27 +7811,27 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -7595,27 +7815,27 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
                  uint month = 1 + (i % 12);
                  if (ratingsOnly) {
                      sprintf (temp, "%4u.%02u", year, (month - 1) * 100 / 12);
@@ -3222,7 +3219,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -7630,7 +7846,7 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -7630,7 +7850,7 @@ sc_name_info (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    3rd arg: maximum number of matches to return.
  //    Example: sc_nameMatch player "Speel" 10
  int
@@ -3231,7 +3228,7 @@ index da55409..fa8f470 100644
  {
      const char * usage = \
          "Usage: sc_name match [-elo] <nameType> <prefix> <maxMatches>";
-@@ -7655,21 +7871,22 @@ sc_name_match (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -7655,21 +7875,22 @@ sc_name_match (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  
      const char * prefix = argv[arg++];
      uint maxMatches = strGetUnsigned (argv[arg++]);
@@ -3259,7 +3256,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -7730,7 +7947,7 @@ public:
+@@ -7730,7 +7951,7 @@ public:
  };
  
  int
@@ -3268,7 +3265,7 @@ index da55409..fa8f470 100644
  {
      const char * usage = "Usage: sc_name plist [-<option> <value> ...]";
  
-@@ -7814,8 +8031,8 @@ sc_name_plist (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -7814,8 +8035,8 @@ sc_name_plist (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      count = std::min(count, plist.size());
      std::partial_sort(plist.begin(), plist.begin() + count, plist.end(), PListSort(dbase, activity, sortMode));
  
@@ -3279,7 +3276,7 @@ index da55409..fa8f470 100644
      for (size_t i=0; i < count; i++) {
          idNumberT id = plist[i];
          info.clear();
-@@ -7951,7 +8168,7 @@ UI_res_t sc_name_ratings (UI_handle_t ti, scidBaseT& dbase, const SpellChecker&
+@@ -7951,7 +8172,7 @@ UI_res_t sc_name_ratings (UI_handle_t ti, scidBaseT& dbase, const SpellChecker&
      }
      if (numChangedGames > 0) dbase.clearCaches();
  
@@ -3288,7 +3285,7 @@ index da55409..fa8f470 100644
      res.push_back(numChangedRatings);
      res.push_back(numChangedGames);
      return UI_Result(ti, OK, res);
-@@ -7965,7 +8182,7 @@ UI_res_t sc_name_ratings (UI_handle_t ti, scidBaseT& dbase, const SpellChecker&
+@@ -7965,7 +8186,7 @@ UI_res_t sc_name_ratings (UI_handle_t ti, scidBaseT& dbase, const SpellChecker&
  //   If there is no filename argument, sc_name_read just returns the same
  //   list for the current spellchecker status without reading a new file.
  int
@@ -3297,7 +3294,7 @@ index da55409..fa8f470 100644
  {
      if (argc > 5) {
          return UI_Result(ti, ERROR_BadArg, "Usage: sc_name read <spellcheck-file>");
-@@ -7983,7 +8200,7 @@ sc_name_read (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -7983,7 +8204,7 @@ sc_name_read (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          progress.report(1, 1);
      }
  
@@ -3306,7 +3303,7 @@ index da55409..fa8f470 100644
      for (nameT i = 0; i < NUM_NAME_TYPES; i++) {
          uint n = (spellChk == NULL) ? 0 : spellChk->numCorrectNames(i);
          res.push_back(n);
-@@ -8186,7 +8403,7 @@ avgGameLength (resultT result)
+@@ -8186,7 +8407,7 @@ avgGameLength (resultT result)
  }
  
  int
@@ -3315,7 +3312,7 @@ index da55409..fa8f470 100644
  {
      static const char * options [] = {
          "avgLength", "best", "counts", "create", "eco", "elo",
-@@ -8240,7 +8457,7 @@ sc_report (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -8240,7 +8461,7 @@ sc_report (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          }
          dstr = new DString;
          report->BestGames (dstr, strGetUnsigned(argv[4]), argv[3]);
@@ -3324,7 +3321,7 @@ index da55409..fa8f470 100644
          break;
  
      case OPT_COUNTS:
-@@ -8255,9 +8472,9 @@ sc_report (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -8255,9 +8476,9 @@ sc_report (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          if (argc > 3) {
              dstr = new DString();
              report->TopEcoCodes (dstr, strGetUnsigned(argv[3]));
@@ -3336,7 +3333,7 @@ index da55409..fa8f470 100644
          }
          break;
  
-@@ -8283,7 +8500,7 @@ sc_report (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -8283,7 +8504,7 @@ sc_report (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          report->EndMaterialReport (dstr,
                         translate (ti, "OprepReportGames", "Report games"),
                         translate (ti, "OprepAllGames", "All games"));
@@ -3345,7 +3342,7 @@ index da55409..fa8f470 100644
          break;
  
      case OPT_FORMAT:
-@@ -8308,7 +8525,7 @@ sc_report (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -8308,7 +8529,7 @@ sc_report (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      case OPT_LINE:
          dstr = new DString;
          report->PrintStemLine (dstr);
@@ -3354,7 +3351,7 @@ index da55409..fa8f470 100644
          break;
  
      case OPT_MAX:
-@@ -8325,7 +8542,7 @@ sc_report (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -8325,7 +8546,7 @@ sc_report (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          }
          dstr = new DString;
          report->PopularMoveOrders (dstr, strGetUnsigned(argv[3]));
@@ -3363,7 +3360,7 @@ index da55409..fa8f470 100644
          break;
  
      case OPT_NOTES:
-@@ -8354,7 +8571,7 @@ sc_report (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -8354,7 +8575,7 @@ sc_report (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
              if (argv[3][0] == 'B'  ||  argv[3][0] == 'b') { color = BLACK; }
              dstr = new DString;
              report->TopPlayers (dstr, color, strGetUnsigned(argv[4]));
@@ -3372,7 +3369,7 @@ index da55409..fa8f470 100644
          }
          break;
  
-@@ -8370,7 +8587,7 @@ sc_report (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -8370,7 +8591,7 @@ sc_report (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          dstr = new DString;
          report->PrintTable (dstr, argc > 4 ? argv[4] : "",
                               argc > 5 ? argv[5] : "");
@@ -3381,7 +3378,7 @@ index da55409..fa8f470 100644
          break;
  
      case OPT_SCORE:
-@@ -8396,7 +8613,7 @@ sc_report (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -8396,7 +8617,7 @@ sc_report (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      case OPT_THEMES:
          dstr = new DString;
          report->ThemeReport (dstr, argc - 3, (const char **) argv + 3);
@@ -3390,7 +3387,7 @@ index da55409..fa8f470 100644
          break;
  
      default:
-@@ -8404,7 +8621,7 @@ sc_report (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -8404,7 +8625,7 @@ sc_report (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      }
  
      if (dstr != NULL) { delete dstr; }
@@ -3399,7 +3396,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -8415,7 +8632,7 @@ sc_report (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -8415,7 +8636,7 @@ sc_report (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    the Tcl code that calls this need to ensure that
  //    is done first.
  int
@@ -3408,7 +3405,7 @@ index da55409..fa8f470 100644
  {
      uint maxThemeMoveNumber = 20;
      uint maxExtraMoves = 1;
-@@ -8493,7 +8710,7 @@ sc_report_create (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -8493,7 +8714,7 @@ sc_report_create (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      }
      progress.report(1,1);
  
@@ -3417,7 +3414,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -8502,7 +8719,7 @@ sc_report_create (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -8502,7 +8723,7 @@ sc_report_create (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    in the opening report matching the specified
  //    opening/endgame theme or note number.
  int
@@ -3426,7 +3423,7 @@ index da55409..fa8f470 100644
  {
      static const char * usage =
          "Usage: sc_report opening|player select <op|eg|note> <number>";
-@@ -8532,7 +8749,7 @@ sc_report_select (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -8532,7 +8753,7 @@ sc_report_select (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      }
      delete[] matches;
  
@@ -3435,7 +3432,7 @@ index da55409..fa8f470 100644
  }
  
  
-@@ -8540,7 +8757,7 @@ sc_report_select (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -8540,7 +8761,7 @@ sc_report_select (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //  SEARCH and TREE functions
  
  int
@@ -3444,7 +3441,7 @@ index da55409..fa8f470 100644
  {
      static const char * options [] = {
          "best", "move", "positions", "search", "size",
-@@ -8578,7 +8795,7 @@ sc_tree (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -8578,7 +8799,7 @@ sc_tree (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          return InvalidCommand (ti, "sc_tree", options);
      }
  
@@ -3453,7 +3450,7 @@ index da55409..fa8f470 100644
  }
  
  
-@@ -8589,7 +8806,7 @@ sc_tree (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -8589,7 +8810,7 @@ sc_tree (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    It can also be "random" to request a random move selected
  //    according to the frequency of each move in the tree.
  int
@@ -3462,7 +3459,7 @@ index da55409..fa8f470 100644
  {
      if (argc != 4) {
          return errorResult (ti, "Usage: sc_tree move <baseNum> <lineNum>");
-@@ -8601,7 +8818,7 @@ sc_tree_move (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -8601,7 +8822,7 @@ sc_tree_move (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      int selection = strGetInteger (argv[3]);
      if (argv[3][0] == 'r'  &&  strIsPrefix (argv[3], "random")) {
          uint total = base->tree.totalCount;
@@ -3471,7 +3468,7 @@ index da55409..fa8f470 100644
          uint r = rand() % total;
          uint sum = 0;
          for (uint i=0; i < base->tree.moveCount; i++) {
-@@ -8616,7 +8833,7 @@ sc_tree_move (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -8616,7 +8837,7 @@ sc_tree_move (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      if (selection < 1  ||  selection > (int)(base->tree.moveCount)) {
          // Not a valid selection. We ignore it (e.g. the user clicked on a
          // line with no move on it).
@@ -3480,7 +3477,7 @@ index da55409..fa8f470 100644
      }
  
      const treeNodeT* node = &(base->tree.node[selection - 1]);
-@@ -8624,11 +8841,11 @@ sc_tree_move (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -8624,11 +8845,11 @@ sc_tree_move (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      // If the san string first char is not a letter, it is the
      // empty move (e.g. "[end]") so we do NOT add a move:
      if (! isalpha(node->san[0])) {
@@ -3495,7 +3492,7 @@ index da55409..fa8f470 100644
  }
  
  // Enumeration of possible move-sorting methods for tree mode:
-@@ -8687,7 +8904,7 @@ sortTreeMoves (treeT * tree, int sortMethod, colorT toMove)
+@@ -8687,7 +8908,7 @@ sortTreeMoves (treeT * tree, int sortMethod, colorT toMove)
  // sc_tree_search:
  //    Returns the tree for the current position
  int
@@ -3504,7 +3501,7 @@ index da55409..fa8f470 100644
  {
      static const char * usageStr =
        "Usage: sc_tree search [-hideMoves <0|1>] [-sort alpha|eco|frequency|score] [-time <0|1>]";
-@@ -8727,7 +8944,7 @@ sc_tree_search (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -8727,7 +8948,7 @@ sc_tree_search (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
              inFilterOnly = strGetBoolean (argv[arg+1]);
          } else if (strIsPrefix (argv[arg], "-cancel")) {
          	search_pool.clear();
@@ -3513,7 +3510,7 @@ index da55409..fa8f470 100644
          } else {
              return errorResult (ti, usageStr);
          }
-@@ -9034,7 +9251,7 @@ sc_tree_search (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -9034,7 +9255,7 @@ sc_tree_search (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          output->Append (temp);
  
          if (listMode) {
@@ -3522,7 +3519,7 @@ index da55409..fa8f470 100644
              output->Clear();
          }
      }
-@@ -9114,7 +9331,7 @@ sc_tree_search (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -9114,7 +9335,7 @@ sc_tree_search (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          sprintf (temp, "  %3d%%", (pctDraws + 5) / 10);
          output->Append (temp);
          if (listMode) {
@@ -3531,7 +3528,7 @@ index da55409..fa8f470 100644
              output->Clear();
          } else {
              output->Append ("\n");
-@@ -9140,49 +9357,50 @@ sc_tree_search (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -9140,49 +9361,50 @@ sc_tree_search (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  #endif
  
      if (! listMode) {
@@ -3593,7 +3590,7 @@ index da55409..fa8f470 100644
  {
      static const char * options [] = {
          "board", "header", "material", NULL
-@@ -9191,7 +9409,7 @@ sc_search (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -9191,7 +9413,7 @@ sc_search (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  
      int index = -1;
      if (argc > 1) { index = strUniqueMatch (argv[1], options); }
@@ -3602,7 +3599,7 @@ index da55409..fa8f470 100644
  
      if (!db->inUse) {
          return errorResult (ti, errMsgNotOpen(ti));
-@@ -9226,7 +9444,7 @@ sc_search (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -9226,7 +9448,7 @@ sc_search (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  //    if <base> is present, search for current position in base <base>,
  //    and sets <base> filter accordingly
  int
@@ -3611,7 +3608,7 @@ index da55409..fa8f470 100644
  {
      const char * usageStr =
          "Usage: sc_search board <filterOp> <searchType> <searchInVars> <flip> [<base>]";
-@@ -9432,18 +9650,18 @@ sc_search_board (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -9432,18 +9654,18 @@ sc_search_board (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      char temp[200];
      int centisecs = timer.CentiSecs();
      if (gameNum != dbase->numGames()) {
@@ -3634,7 +3631,7 @@ index da55409..fa8f470 100644
  }
  
  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -9575,7 +9793,7 @@ parsePattern (const char * str, patternT * patt)
+@@ -9575,7 +9797,7 @@ parsePattern (const char * str, patternT * patt)
  // sc_search_material:
  //    Searches by material and/or pattern.
  int
@@ -3643,7 +3640,7 @@ index da55409..fa8f470 100644
  {
      if (! db->inUse) {
          return errorResult (ti, "Not an open database.");
-@@ -9675,8 +9893,8 @@ sc_search_material (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -9675,8 +9897,8 @@ sc_search_material (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
  
          case OPT_PATTERN:
              if (parsePattern (value, &tempPatt) != OK) {
@@ -3654,7 +3651,7 @@ index da55409..fa8f470 100644
              }
              // Only add to lists if a pattern was specified:
              if (tempPatt.pieceMatch == EMPTY) { break; }
-@@ -9895,18 +10113,18 @@ sc_search_material (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -9895,18 +10117,18 @@ sc_search_material (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
      int centisecs = timer.CentiSecs();
  
      if (gameNum != n) {
@@ -3677,7 +3674,7 @@ index da55409..fa8f470 100644
  }
  
  
-@@ -9983,7 +10201,7 @@ parseTitles (const char * str)
+@@ -9983,7 +10205,7 @@ parseTitles (const char * str)
  // sc_search_header:
  //    Searches by header information.
  int
@@ -3686,7 +3683,7 @@ index da55409..fa8f470 100644
  {
      ASSERT(argc >= 2);
      Progress progress = UI_CreateProgress(ti);
-@@ -10059,10 +10277,14 @@ sc_search_header (ClientData cd, Tcl_Interp * ti, scidBaseT* base, HFilter& filt
+@@ -10059,10 +10281,14 @@ sc_search_header (ClientData cd, Tcl_Interp * ti, scidBaseT* base, HFilter& filt
              break;
  
          case OPT_PGN:
@@ -3703,7 +3700,7 @@ index da55409..fa8f470 100644
              break;
  
          }
-@@ -10237,7 +10459,11 @@ sc_search_header (ClientData cd, Tcl_Interp * ti, scidBaseT* base, HFilter& filt
+@@ -10237,7 +10463,11 @@ sc_search_header (ClientData cd, Tcl_Interp * ti, scidBaseT* base, HFilter& filt
      if (wTitles != NULL) { delete[] wTitles; }
      if (bTitles != NULL) { delete[] bTitles; }
  
@@ -3715,7 +3712,7 @@ index da55409..fa8f470 100644
  
      progress.report(1,1);
  
-@@ -10249,7 +10475,7 @@ sc_search_header (ClientData cd, Tcl_Interp * ti, scidBaseT* base, HFilter& filt
+@@ -10249,7 +10479,7 @@ sc_search_header (ClientData cd, Tcl_Interp * ti, scidBaseT* base, HFilter& filt
  //  VARIATION creation/deletion/navigation functions.
  
  int
@@ -3724,7 +3721,7 @@ index da55409..fa8f470 100644
  {
      static const char * options [] = {
          "count", "number", "create", "delete", "deletefree", "enter", "exit", "first",
-@@ -10311,14 +10537,14 @@ sc_var (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -10311,14 +10541,14 @@ sc_var (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          return InvalidCommand (ti, "sc_var", options);
      }
  
@@ -3741,7 +3738,7 @@ index da55409..fa8f470 100644
  {
  
      if (argc != 3) {
-@@ -10331,14 +10557,14 @@ sc_var_delete_free (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
+@@ -10331,14 +10561,14 @@ sc_var_delete_free (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv
      }
      db->game->DeleteVariationAndFree (varNumber);
      db->gameAltered = true;
@@ -3758,7 +3755,7 @@ index da55409..fa8f470 100644
  {
  
      if (argc != 3) {
-@@ -10351,14 +10577,14 @@ sc_var_delete (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -10351,14 +10581,14 @@ sc_var_delete (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      }
      db->game->DeleteVariation (varNumber);
      db->gameAltered = true;
@@ -3775,7 +3772,7 @@ index da55409..fa8f470 100644
  {
      if (argc != 3) {
          return errorResult (ti, "Usage: sc_var first <number>");
-@@ -10370,14 +10596,14 @@ sc_var_first (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -10370,14 +10600,14 @@ sc_var_first (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      }
      db->game->FirstVariation (varNumber);
      db->gameAltered = true;
@@ -3792,7 +3789,7 @@ index da55409..fa8f470 100644
  {
      bool uci = (argc > 2) && ! strCompare("UCI", argv[2]);
      uint varCount = db->game->GetNumVariations();
-@@ -10387,17 +10613,17 @@ sc_var_list (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -10387,17 +10617,17 @@ sc_var_list (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          if (uci) db->game->GetNextMoveUCI (s);
          else db->game->GetSAN (s);
          // if (s[0] == 0) { strCopy (s, "(empty)"); }
@@ -3813,7 +3810,7 @@ index da55409..fa8f470 100644
  {
      if (argc != 3) {
          return errorResult (ti, "Usage: sc_var enter <number>");
-@@ -10415,14 +10641,14 @@ sc_var_enter (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -10415,14 +10645,14 @@ sc_var_enter (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      // Uncomment the following line to auto-play the first move:
      db->game->MoveForward();
  
@@ -3830,7 +3827,7 @@ index da55409..fa8f470 100644
  {
      static const char * options [] = {
          "load", "close", "moves", "positions", "movesupdate", "update", NULL
-@@ -10457,14 +10683,14 @@ sc_book (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -10457,14 +10687,14 @@ sc_book (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
          return InvalidCommand (ti, "sc_book", options);
      }
  
@@ -3847,7 +3844,7 @@ index da55409..fa8f470 100644
  {
      if (argc != 4) {
          return errorResult (ti, "Usage: sc_book load bookfile slot");
-@@ -10481,19 +10707,19 @@ sc_book_load (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -10481,19 +10711,19 @@ sc_book_load (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
  		   // state == 1: book is read only
  			return setIntResult (ti, bookstate);
  	 }
@@ -3870,7 +3867,7 @@ index da55409..fa8f470 100644
  {
      if (argc != 3) {
          return errorResult (ti, "Usage: sc_book close slot");
-@@ -10502,13 +10728,13 @@ sc_book_close (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -10502,13 +10732,13 @@ sc_book_close (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      if (polyglot_close(slot) == -1 ) {
  			return errorResult (ti, "Error closing book");
  		}
@@ -3886,7 +3883,7 @@ index da55409..fa8f470 100644
  {
  		char moves[200] = "";
  		char boardStr[100];
-@@ -10518,14 +10744,14 @@ sc_book_moves (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -10518,14 +10748,14 @@ sc_book_moves (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      uint slot = strGetUnsigned (argv[2]);
  		db->game->GetCurrentPos()->PrintFEN (boardStr, FEN_ALL_FIELDS);
  		polyglot_moves(moves, (const char *) boardStr, slot);
@@ -3904,7 +3901,7 @@ index da55409..fa8f470 100644
  {
  		char moves[200] = "";
  		char boardStr[100];
-@@ -10535,34 +10761,34 @@ sc_book_positions (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
+@@ -10535,34 +10765,34 @@ sc_book_positions (ClientData cd, Tcl_Interp * ti, int argc, const char ** argv)
      uint slot = strGetUnsigned (argv[2]);
  		db->game->GetCurrentPos()->PrintFEN (boardStr, FEN_ALL_FIELDS);
  		polyglot_positions(moves, (const char *) boardStr, slot);

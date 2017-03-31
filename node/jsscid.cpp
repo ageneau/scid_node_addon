@@ -35,11 +35,7 @@
 #include "dbasepool.h"
 #include "ui.h"
 
-extern scidBaseT* db;
-const int MAX_BASES = 9;
-
-static uint htmlDiagStyle = 0;
-static Game * scratchGame = NULL;      // "scratch" game for searches, etc.
+extern int scid_main(int argc, char * argv[]);
 
 namespace scid {
 using v8::Exception;
@@ -142,14 +138,9 @@ void js_var(const FunctionCallbackInfo<Value>& args) {
     wrap_scid_function(args, &sc_var);
 }
 
-void initJSScid() {
-	srand(time(NULL));
-	scratchGame = new Game;
-    DBasePool::init();
-}
-
 void init(Local<Object> exports) {
-    initJSScid();
+    char *scid = "scid";
+    scid_main(1, &scid);
     NODE_SET_METHOD(exports, "base", js_base);
     NODE_SET_METHOD(exports, "book", js_book);
     NODE_SET_METHOD(exports, "clipbase", js_clipbase);
