@@ -21,9 +21,6 @@ describe('filter', function() {
   it('should return the number of games found with the current filter', function () {
     assert.equal(4, scid.filter("count", baseId, "dbfilter"));
   });
-  it('should return the number of games in the databases', function () {
-    assert.equal(4, numGames);
-  });
 });
 
 describe('game', function() {

@@ -151,7 +151,11 @@ inline UI_res_t ResultHelper(UI_handle_t args, errorT res) {
     Isolate* isolate = args->callback_info->GetIsolate();
 
     // Throw an Error that is passed back to JavaScript
-    isolate->ThrowException(Exception::Error(String::Concat(String::NewFromUtf8(isolate, "code:"), Integer::New(isolate, res)->ToString())));
+    Local<Value> error = Exception::Error(String::NewFromUtf8(isolate, "Error in SCID"));
+    Local<Object> obj = error->ToObject(isolate);
+    
+    obj->Set(String::NewFromUtf8(isolate, "code"), Integer::New(isolate, res));
+    isolate->ThrowException(obj);
 
 	return -1;
 }
