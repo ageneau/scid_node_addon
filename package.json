@@ -1,6 +1,6 @@
 {
   "name": "scid",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Node bindings to SCID (Shane's Chess Information Database)",
   "main": "index.js",
   "keywords": [
