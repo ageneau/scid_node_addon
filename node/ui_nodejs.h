@@ -57,11 +57,17 @@ inline Progress CreateProgressPosMask(UI_handle_t) {
 }
 class List {
     std::vector<Local<Value>> list;
+    bool append;
     UI_handle_t args;
     friend Local<Value> ObjMaker(UI_handle_t args, const List& v);
+
+    void returnString();
+    void returnArray();
+
 public:
     explicit List(UI_handle_t args)
-        : args(args)
+        : args(args),
+          append(false)
     {}
 	void clear() {
         list.clear();
@@ -71,9 +77,8 @@ public:
         return list.empty();
     }
 
-    void returnString();
-
-	template <typename T> void push_back(const T&);
+    void returnResult();
+	template <typename T> void push_back(const T&, bool append = false);
 };
 
 struct nodejs_result {
@@ -129,7 +134,12 @@ inline Local<Value> ObjMaker(UI_handle_t args, const List& v) {
 }
 
 template <typename T>
-inline void List::push_back(const T& value) {
+inline void List::push_back(const T& value, bool append) {
+    if(append) {
+        this->append = true;
+    } else {
+        ASSERT(!this->append);
+    }
     list.push_back(ObjMaker(args, value));
 }
 
@@ -144,6 +154,24 @@ inline void List::returnString() {
     }
 }
 
+
+inline void List::returnArray() {
+    Isolate* isolate = args->callback_info->GetIsolate();
+    Handle<Array> array = Array::New(isolate, list.size());
+    for(uint i=0; i<list.size(); i++) {
+        array->Set(i, list[i]);
+    }
+    args->callback_info->GetReturnValue().Set(array);
+}
+
+inline void List::returnResult() {
+    if(!this->empty()) {
+        if(this->append)
+            this->returnString();
+        else
+            this->returnArray();
+    }
+}
 
 inline UI_res_t ResultHelper(UI_handle_t args, errorT res) {
 	if (res == OK) return 0;

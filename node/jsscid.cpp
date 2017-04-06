@@ -77,9 +77,7 @@ void wrap_scid_function(const FunctionCallbackInfo<Value>& args, scid_function f
     struct UI_impl::nodejs_result res(&args);
     (*func)(0, &res, argv.size(), argv.data());
     freeScidArgs(argv);
-    if(!res.result->empty()) {
-        res.result->returnString();
-    }
+    res.result->returnResult();
 }
 
 void js_base(const FunctionCallbackInfo<Value>& args) {
