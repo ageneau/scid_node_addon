@@ -35,7 +35,6 @@ using v8::Integer;
 using v8::Object;
 using v8::String;
 using v8::Value;
-using v8::Handle;
 
 
 typedef int   UI_res_t;
@@ -145,10 +144,10 @@ inline void List::push_back(const T& value, bool append) {
 
 inline void List::returnString() {
     if(list.size() > 0) {
-        Handle<String> ret = Handle<String>::Cast(list[0]);
+        Local<String> ret = Local<String>::Cast(list[0]);
         for(int i=1; i<list.size(); i++) {
-            Handle<String> string = Handle<String>::Cast(list[i]);
-            ret = v8::String::Concat(ret, string);
+            Local<String> string = Local<String>::Cast(list[i]);
+            ret = v8::String::Concat(args->callback_info->GetIsolate(), ret, string);
         }
         args->callback_info->GetReturnValue().Set(ret);
     }
@@ -157,7 +156,7 @@ inline void List::returnString() {
 
 inline void List::returnArray() {
     Isolate* isolate = args->callback_info->GetIsolate();
-    Handle<Array> array = Array::New(isolate, list.size());
+    Local<Array> array = Array::New(isolate, list.size());
     for(uint i=0; i<list.size(); i++) {
         array->Set(i, list[i]);
     }

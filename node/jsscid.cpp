@@ -57,7 +57,7 @@ std::vector<const char*> scidArgsFromV8(const FunctionCallbackInfo<Value>& args)
     argv.push_back(strdup(""));
 
     for(int i=0; i<args.Length(); i++) {
-        v8::String::Utf8Value str(args[i]);
+        v8::String::Utf8Value str(args.GetIsolate(), args[i]);
         argv.push_back(strdup(ToCString(str)));
     }
 
